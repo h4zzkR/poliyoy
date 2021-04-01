@@ -42,6 +42,7 @@
 # Dev stack
 - python
 - arcade (графическая библиотека)
+- pillow
 - ...
 
 # References
