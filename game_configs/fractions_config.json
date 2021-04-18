@@ -1,0 +1,12 @@
+{
+  "0": {
+    "fraction_id": 0,
+    "color": "RED",
+    "isBot": true
+  },
+  "1": {
+    "fraction_id": 1,
+    "color": "AEROBLUE",
+    "isBot": false
+  }
+}
