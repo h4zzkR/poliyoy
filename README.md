@@ -37,12 +37,15 @@
 ![unitCreation(1)](https://user-images.githubusercontent.com/35405876/111896446-bc755e00-8a2a-11eb-8a40-1aef4e0e451b.png)
 
 
+# Part 2 - размещение юнитов, логика ходов, карта и паттерны
+- To be continued
 
 
 # Dev stack
 - python
 - arcade (графическая библиотека)
 - pillow
+- numpy
 - ...
 
 # References
