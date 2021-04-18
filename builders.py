@@ -3,10 +3,9 @@ from abc import ABC, abstractmethod
 from abstract import AbstractEntity
 from config import *
 from entity import *
-from fractions import FractionType
 
 
-class EntityBuilder(ABC):
+class AbstractEntityBuilder(ABC):
     entity: AbstractEntity
 
     def __init__(self):
@@ -31,17 +30,15 @@ class EntityBuilder(ABC):
         """
         self.entity.__dict__[param[0]] = param[1]
 
-    @abstractmethod
     def set_position(self, position: (int, int)) -> None:
-        pass
+        self.entity.position = position
 
     def set_entity_type(self, entity_type_id):
         self.entity.entity_id = entity_type_id
         self.entity.__class__ = TypeInfo.id2type[entity_type_id]
 
-
-class EntityDirector(ABC):
-    _builder: EntityBuilder
+class AbstractEntityDirector(ABC):
+    _builder: AbstractEntityBuilder
 
     def __init__(self):
         pass
@@ -64,15 +61,17 @@ class EntityDirector(ABC):
         :return:
         """
         for item in config.items():
+            # print(self._builder.entity)
             self._builder.entity.__dict__[item[0]] *= item[1]
 
-    def fraction(self, fraction_id):
+    def set_fraction(self, fraction_id):
         """
         Задать фракцию произвольного объекта
         :param fraction_type:
         :return:
         """
-        self.apply_modifiers(ENTITIES_CONFIG[f"fraction{fraction_id}_modifiers"])
+        self._builder.set_fraction(fraction_id)
+        return self
 
     def fraction0(self):
         self.apply_modifiers(ENTITIES_CONFIG["fraction0_modifiers"])
@@ -90,33 +89,27 @@ class EntityDirector(ABC):
             self._builder.set_parameter(item)
         self._builder.set_entity_type(ENTITIES_CONFIG[typename]["type_id"])
         self._builder.set_position(position)
+        try:
+            self.apply_modifiers(ENTITIES_CONFIG[f"fraction{self._builder.entity.fraction_id}_modifiers"])
+        except Exception:
+            raise AttributeError("You must set fraction id")
         return self
 
     def get(self):
         return self._builder.get()
-
-
-class UnitBuilder(EntityBuilder):
-    entity = AbstractEntity
-
+    
+class EntityBuilder(AbstractEntityBuilder):
+    
     def __init__(self):
-        super(UnitBuilder, self).__init__()
-
+        super(EntityBuilder, self).__init__()
+        
     def set_position(self, position):
         self.entity.position = position
 
-
-class BuildingBuilder(EntityBuilder):
-    entity = AbstractEntity
-
-    def set_position(self, position):
-        self.entity.position = position
-
-
-class UnitDirector(EntityDirector):
+class EntityDirector(AbstractEntityDirector):
 
     def __init__(self):
-        super(UnitDirector, self).__init__()
+        super(EntityDirector, self).__init__()
 
     def build_archer(self, position=(None, None)):
         self.build_entity(TypeInfo.typename2id["archer"], position)
@@ -125,12 +118,6 @@ class UnitDirector(EntityDirector):
     def build_swordsman(self, position=(None, None)):
         self.build_entity(TypeInfo.typename2id["swordsman"], position)
         return self
-
-
-class BuildingsDirector(EntityDirector):
-
-    def __init__(self):
-        super(BuildingsDirector, self).__init__()
 
     def build_village(self, position=(None, None)):
         self.build_entity(TypeInfo.typename2id["village"], position)
@@ -142,13 +129,14 @@ class BuildingsDirector(EntityDirector):
 
 
 if __name__ == "__main__":
-    director1 = UnitDirector()
-    director1.builder = UnitBuilder()
-    director1._builder = UnitBuilder()
-    archer = director1.build_archer().fraction0().get()
-    swordsman = director1.build_swordsman().fraction1().get()
-
-    director2 = BuildingsDirector()
-    director2._builder = BuildingBuilder()
-    village = director2.build_village().fraction1().get()
-    print(village)
+    pass
+    # director1 = UnitDirector()
+    # director1.builder = UnitBuilder()
+    # director1._builder = UnitBuilder()
+    # archer = director1.build_archer().fraction0().get()
+    # swordsman = director1.build_swordsman().fraction1().get()
+    # 
+    # director2 = BuildingsDirector()
+    # director2._builder = BuildingBuilder()
+    # village = director2.build_village().fraction1().get()
+    # print(village.hash(), swordsman.hash())

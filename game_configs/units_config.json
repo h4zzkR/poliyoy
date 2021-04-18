@@ -15,13 +15,23 @@
     "damage_range": 1,
     "move_range": 2
   },
+  "tree" : {
+    "type_id": -1,
+    "damage": 0,
+    "health": 0,
+    "salary": -2,
+    "damage_range": 0,
+    "move_range": 0,
+    "texture": "assets/tree.png"
+  },
   "village" : {
     "type_id": 2,
     "damage": 0,
     "health": 100,
     "salary": 10,
     "damage_range": 0,
-    "move_range": 0
+    "move_range": 0,
+    "texture": "assets/farm.png"
   },
   "defence_tower" : {
     "type_id": 3,
@@ -29,7 +39,8 @@
     "health": 150,
     "salary": -10,
     "damage_range": 2,
-    "move_range": 0
+    "move_range": 0,
+    "texture": "assets/tower.png"
   },
   "fraction0_modifiers" : {
     "health" : 0.1,

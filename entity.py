@@ -1,5 +1,4 @@
 from abstract import AbstractBuilding, AbstractUnit
-from enum import Enum
 
 class DefenceTowerBuilding(AbstractBuilding):
     def __init__(self, *args, **kwargs):
@@ -11,12 +10,10 @@ class VillageBuilding(AbstractBuilding):
     def __init__(self, *args, **kwargs):
         super(VillageBuilding, self).__init__()
 
-
 class SwordsmanUnit(AbstractUnit):
     def __init__(self, *args, **kwargs):
         super(SwordsmanUnit, self).__init__()
         pass
-
 
 class ArcherUnit(AbstractUnit):
     def __init__(self, *args, **kwargs):
