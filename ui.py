@@ -8,7 +8,6 @@ from map.hexagonal_map import MapState
 class PlaceEnityButton(arcade.gui.UIFlatButton):
 
     command = None
-    map_state = MapState()
 
     def set_command(self, command: Command):
         self.command = command
