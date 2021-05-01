@@ -5,15 +5,14 @@ from control import Command
 from map.hexagonal_map import GameState
 
 
-class PlaceEnityButton(arcade.gui.UIFlatButton):
-
+class PlaceEntityButton(arcade.gui.UIFlatButton):
     command = None
 
     def set_command(self, command: Command):
         self.command = command
 
     def __init__(self, *args, **kwargs):
-        super(PlaceEnityButton, self).__init__(*args, **kwargs)
+        super(PlaceEntityButton, self).__init__(*args, **kwargs)
 
         self.set_style_attrs(
             font_color=arcade.color.WHITE,
@@ -27,7 +26,22 @@ class PlaceEnityButton(arcade.gui.UIFlatButton):
             border_color_press=arcade.color.WHITE
         )
 
-
     def on_click(self):
         """ Called when user lets off button """
         self.command.execute()
+
+
+class NextStepButton(PlaceEntityButton):
+    command = None
+
+    def __init__(self, *args, **kwargs):
+        super(NextStepButton, self).__init__(*args, **kwargs)
+
+        self.set_style_attrs(
+            bg_color = arcade.color.RED_DEVIL,
+            bg_color_hover = arcade.color.RED_DEVIL,
+            bg_color_press = arcade.color.RED_DEVIL,
+        )
+
+    def set_command(self, command: Command):
+        self.command = command

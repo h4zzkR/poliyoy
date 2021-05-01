@@ -39,3 +39,10 @@ class MoveUnit(Command):
         if is_moved:
             self.fraction.move_unit(old_pos, new_pos, is_moved_on_own_tile)
             self.map.set_defence(new_pos, old_pos)
+
+class NextStep(Command):
+    def __init__(self, game_window):
+        self.game_window = game_window
+
+    def execute(self) -> None:
+        self.game_window.on_next_step_key_press()

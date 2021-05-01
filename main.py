@@ -4,7 +4,7 @@ from map.hexagonal_map import HexMap, GameState
 from arcade.gui.ui_style import UIStyle
 from fractions import Fraction
 from config import FRACTIONS_CONFIG, MAP_HEX_RADIUS, ASSETS
-from ui import PlaceEnityButton
+from ui import PlaceEntityButton, NextStepButton
 from control import MoveUnit
 
 
@@ -14,6 +14,8 @@ class Game(arcade.Window):
     hosts_num = 2
     active_host: int  # номер текущего активного хоста (тот, который играет)
     game_iteration: int  # номер хода
+
+    gamer_host: int
 
     map_state = None
     select_color = "BLUE"
@@ -37,6 +39,11 @@ class Game(arcade.Window):
 
         self.setup()
 
+    def __new__(cls):
+        if not hasattr(cls, 'instance'):
+            cls.instance = super(Game, cls).__new__(cls)
+        return cls.instance
+
     def init_hosts(self):
         for (e, frac) in enumerate(FRACTIONS_CONFIG.keys()):
             self.hosts.append(Fraction(**FRACTIONS_CONFIG[frac]))
@@ -45,6 +52,7 @@ class Game(arcade.Window):
 
             if not fraction.isBot:
                 self.active_host = e
+                self.gamer_host = e
 
             self.map.place_fraction(fraction)
 
@@ -58,7 +66,7 @@ class Game(arcade.Window):
         :return:
         """
 
-        from control import SpawnEntity
+        from control import SpawnEntity, NextStep
 
         btn_w, btn_h = 50,50
 
@@ -67,15 +75,38 @@ class Game(arcade.Window):
         self.map.after_init(self.hosts) # размещение на карте деревьев и т.п.
 
         self.ui_manager.purge_ui_elements()
-        btn = PlaceEnityButton(text="V", center_x=self.w + self.ui_margin_left, # village
-                            center_y=self.h - self.ui_margin_top, width=btn_w, height=btn_h)
-        btn.set_command(SpawnEntity(self.map, self.map_state, 2))
-        self.ui_manager.add_ui_element(btn)
 
-        btn = PlaceEnityButton(text="S", center_x=self.w + self.ui_margin_left + btn_w + 10, # village
-                            center_y=self.h - self.ui_margin_top, width=btn_w, height=btn_h)
-        btn.set_command(SpawnEntity(self.map, self.map_state, 1))
-        self.ui_manager.add_ui_element(btn)
+        next_btn = NextStepButton(text="Step", center_x=self.w + 2 * self.ui_margin_left,
+                                  center_y=self.h - self.ui_margin_top, width=btn_w * 2.1, height=btn_h)
+        next_btn.set_command(NextStep(self))
+        self.ui_manager.add_ui_element(next_btn)
+
+        btn1 = PlaceEntityButton(text="V", center_x=self.w + self.ui_margin_left,  # village
+                                center_y=next_btn.center_y - 1.2 * btn_h, width=btn_w, height=btn_h)
+        btn1.set_command(SpawnEntity(self.map, self.map_state, 2))
+        self.ui_manager.add_ui_element(btn1)
+
+        btn2 = PlaceEntityButton(text="S", center_x=btn1.center_x + btn_w * 1.2,  # village
+                                center_y=btn1.center_y, width=btn_w, height=btn_h)
+        btn2.set_command(SpawnEntity(self.map, self.map_state, 1))
+        self.ui_manager.add_ui_element(btn2)
+
+        money_label = arcade.gui.UILabel(
+            f'Gold: {self.hosts[self.gamer_host].money_amount}',
+            center_x=btn1.center_x + btn_w * 0.55,
+            center_y=btn1.center_y - btn_h,
+            id="money_amount"
+        )
+        self.ui_manager.add_ui_element(money_label)
+
+        money_step = arcade.gui.UILabel(
+            f'Delta: {self.hosts[self.gamer_host].step_delta}',
+            center_x=money_label.center_x,
+            center_y=money_label.center_y - btn_h * 0.65,
+            id="money_step"
+        )
+        self.ui_manager.add_ui_element(money_step)
+
 
 
         # from control import SpawnEntity
@@ -106,7 +137,11 @@ class Game(arcade.Window):
             for tile in host.tiles:
                 self.map.unuse_entity(tile)
         self.hosts[1].make_step()
-        # print("after", self.hosts[1].money_amount)
+        self.update_screen_info()
+
+    def update_screen_info(self):
+        self.ui_manager.find_by_id("money_amount").text = "Gold: " + str(self.hosts[self.gamer_host].money_amount)
+        self.ui_manager.find_by_id("money_step").text = "Delta: " + str(self.hosts[self.gamer_host].step_delta)
 
     def update_game_state(self):
         for host in self.hosts:
@@ -144,7 +179,6 @@ class Game(arcade.Window):
 
         # self.map_state.set_fraction(self.hosts[(self.active_host + 1) % 2]) # upd last host
         self.map_state.set_fraction(self.hosts[self.active_host]) # upd last host
-        self.on_next_step_key_press()
         self.update_game_state()
 
     def bot_move(self):
