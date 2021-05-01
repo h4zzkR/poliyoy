@@ -2,7 +2,7 @@ import arcade
 import arcade.gui
 from arcade.gui import UIManager
 from control import Command
-from map.hexagonal_map import MapState
+from map.hexagonal_map import GameState
 
 
 class PlaceEnityButton(arcade.gui.UIFlatButton):
@@ -30,5 +30,4 @@ class PlaceEnityButton(arcade.gui.UIFlatButton):
 
     def on_click(self):
         """ Called when user lets off button """
-        print("Click flat button.")
         self.command.execute()

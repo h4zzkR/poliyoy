@@ -1,25 +1,57 @@
 from builders import EntityBuilder, EntityDirector
+from config import OWNED_TILE_ID, OWNED_TILE_SALARY
 
 
 class Fraction:
-    money_amount = 100
-    entities: dict # список зданий и юнитов страны (координат на карте)
+    money_amount = 15
+    tiles: dict # список клеток страны (в т.ч. построек на них) (координат на карте)
+    # постройки можно ставить только на своей территории, а вот юнитов не обязательно
+    units_pos: dict # список позиций юнитов страны
     color: tuple          # цвет клеток страны
     fraction_id: int
-    fraction_tiles: dict # словарь (или списко) номеров клеток страны
     isBot: bool
     fraction_capital_pos: tuple
+    step_delta: int # число, прибавляемое на каждом шаге
 
     def __init__(self, color, fraction_id, isBot=False):
         self.color = color
         self.fraction_id = fraction_id
         self.isBot = isBot
-        self.entities = {}
+        self.tiles = dict()
+        self.units_pos = dict()
         self.fraction_capital_pos = ()
+        self.step_delta = 0
 
         self.entity_director = EntityDirector()
         self.entity_director.builder = EntityBuilder()
 
     def build_entity(self, entity_id: int, pos: tuple = None):
         self.entity_director.set_fraction(self.fraction_id)
-        return self.entity_director.build_entity(entity_id, pos).get()
+        entity = self.entity_director.build_entity(entity_id, pos).get()
+        if entity.move_range == 0 or entity_id < 0: # постройка
+            self.tiles.update({pos : entity})
+        else:
+            self.units_pos.update({pos : entity})
+        self.step_delta -= entity.salary
+        return entity
+
+    def move_unit(self, old_pos, new_pos, flag):
+        unit = self.units_pos[old_pos]
+        self.units_pos.update({new_pos : unit})
+        if flag: # переместились на собственную клетку
+            del self.units_pos[old_pos]
+
+    def detach_tile(self, pos):
+        del self.tiles[pos]
+        del self.units_pos[pos]
+        self.step_delta += OWNED_TILE_SALARY
+
+    def make_step(self):
+        # self.money_amount -= delta
+        self.money_amount += self.step_delta
+
+    def update_step_delta(self, delta):
+        self.step_delta += delta
+
+    def update_state(self):
+        pass

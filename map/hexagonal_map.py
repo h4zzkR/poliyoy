@@ -3,31 +3,49 @@ from random import randint
 
 import arcade
 import numpy as np
-from arcade import Sprite
 
 from .tiles import TileDecorator
-from config import ASSETS
+from config import ASSETS, TREE_ID, OWNED_TILE_HP_CLASS, OWNED_TILE_SALARY
 
 
-class MapState(object):
+class GameState(object):
 
     last_mouse_tile_pos = (-1, -1)
+    last_mouse_right_tile_pos = (-1, -1)
     last_mouse_tile_texture = ASSETS.hex_textures["GREEN"]
     last_fraction = None
 
+    changed_tiles = dict()
+    fractions = dict()
+
     def __new__(cls):
         if not hasattr(cls, 'instance'):
-            cls.instance = super(MapState, cls).__new__(cls)
+            cls.instance = super(GameState, cls).__new__(cls)
         return cls.instance
 
     def set_pos(self, col, row):
         self.last_mouse_tile_pos = (col, row)
+
+    def set_right_pos(self, col, row):
+        self.last_mouse_right_tile_pos = (col, row)
 
     def set_texture(self, texture):
         self.last_mouse_tile_texture = texture
 
     def set_fraction(self, fraction):
         self.last_fraction = fraction
+
+    def set_fractions(self, fractions: list):
+        self.fractions = dict()
+        for fraction in fractions:
+            self.fractions.update({fraction.fraction_id: fraction})
+
+    def append_to_tiles(self, pos, texture):
+        self.changed_tiles.update({pos : texture})
+
+    def get_last_fraction(self):
+        return self.last_fraction
+        # return self.fractions[self.last_fraction]
 
 class HexMap:
     textures_list = {}
@@ -61,6 +79,8 @@ class HexMap:
         self.map_starts_x = None
         self.map_starts_y = None
 
+        self.state = GameState()
+
     def initialize_map(self):
         zero_hex = TileDecorator()
         zero_hex.init(self.hex_radius, shiftx=0,
@@ -92,25 +112,6 @@ class HexMap:
 
         self.hex_size = hex.texture.width
         self.tiles_list = list(self.tiles.keys())
-
-    def after_init(self, fractions = None):
-        """
-        Запуск после размещения fractions
-        :return:
-        """
-        # random trees on map
-        trees = [self.tiles_list[i] for i in np.random.choice(range(0, len(self.tiles_list)), len(self.tiles_list) // 9)]
-        self.trees = {}
-
-        fractions_pos = [f.fraction_capital_pos for f in fractions]
-        for i in trees:
-            if i not in fractions_pos:
-                pos = (self.tiles[i].center_x, self.tiles[i].center_y)
-                # tree_tile = self.tiles[pos]
-                tree = Sprite("./assets/tree.png", 0.08)
-                tree.set_position(*pos)
-                self.sprite_layer.append(tree)
-                self.trees.update({i: tree})
 
     def create_map(self):
         """
@@ -210,12 +211,32 @@ class HexMap:
             col_, row_ = col + dir[0], row + dir[1]
             if self.is_in_map(col_, row_):
                 dirs.append((col_, row_))
-            else:
-                dirs.append(None)
 
         dirs.append((col, row))
 
         return dirs
+
+    def after_init(self, fractions = None):
+        """
+        Запуск после размещения fractions
+        :return:
+        """
+        # random trees on map
+        trees = [self.tiles_list[i] for i in np.unique(np.random.choice(range(0, len(self.tiles_list)), len(self.tiles_list) // 9))]
+        self.trees = {}
+
+        fractions_pos = [f.fraction_capital_pos for f in fractions]
+
+        from builders import EntityBuilder, EntityDirector
+
+        director = EntityDirector()
+        director.builder = EntityBuilder()
+        for i in trees:
+            if i not in fractions_pos:
+                pos = (self.tiles[i].center_x, self.tiles[i].center_y)
+                tree = director.build_entity(entity_type_id=TREE_ID, position=pos).get()
+                self.tiles[i].set_entity(tree)
+                self.sprite_layer.append(self.tiles[i].sprite_entity)
 
     def place_fraction(self, fraction):
         """
@@ -225,29 +246,153 @@ class HexMap:
         """
         pos = self.tiles_list[randint(0, len(self.tiles) - 1)]
         self.tiles[pos].set_entity(
-            fraction.entity_director.set_fraction(fraction.fraction_id).build_village((self.unlocate(*pos))).get()
+            fraction.build_entity(2, pos)
         )
 
         # Hexmap handle the rednering, so you need to provide access to sprites
         self.sprite_tiles.append(self.tiles[pos].sprite_entity)
-
-        fraction.entities.update({ pos: self.tiles[pos].entity })
         fraction.fraction_capital_pos = pos
-        #
+        self.tiles[pos].set_tile_fraction(fraction, pos)
+
+        # obj = fraction.build_entity(1, pos)
+        # self.spawn_entity(obj, pos, fraction)
+
         country_tiles = self.count_neighbours(*pos)
         for tile in country_tiles:
             if tile is not None:
                 self.tiles[tile].set_tile_texture(fraction.color)
+                if self.tiles[tile].entity is None:
+                    self.tiles[tile].set_tile_fraction(fraction, tile)
 
-    def spawn_entity(self, obj, pos: tuple):
+    def spawn_entity(self, entity_id, pos: tuple, fraction):
         """
         Add new sprite to spritelist
         :param pos:
         :param id:
         :return:
         """
-        try:
+        # try:
+        if pos in fraction.tiles.keys(): # спавн только на собственных территориях
+            entity = self.tiles[pos].entity
+            if self.tiles[pos].is_owned_tile():
+                if self.tiles[pos].owned.fraction_id != fraction.fraction_id:
+                    return False
+
+            if entity is None or entity.entity_id < 0: # TODO UNCOMMENT
+                if entity is not None and entity.entity_id == TREE_ID:
+                    fraction.money_amount -= entity.salary  # todo add price instead of salary
+                    self.tiles[pos].sprite_entity.remove_from_sprite_lists()
+            else:
+                return False
+            obj = fraction.build_entity(entity_id, pos)
             self.tiles[pos].set_entity(obj)
-        except Exception:
-            return
-        self.sprite_tiles.append(self.tiles[pos].sprite_entity)
+            self.sprite_tiles.append(self.tiles[pos].sprite_entity)
+            return True
+        return False
+
+    def get_move_range(self, old_pos):
+        out = set()
+        for tile in self.count_neighbours(old_pos[0], old_pos[1]):
+            out.update(set(self.count_neighbours(tile[0], tile[1])))
+
+        tiles = set()
+        for tile in self.state.get_last_fraction().tiles.keys():
+            if tile in out:
+                tiles.update(set(self.count_neighbours(tile[0], tile[1])))
+
+        return list(tiles)
+        # return list(out)
+
+    def show_move_range(self, old_pos, color, color2):
+        from config import COLORS
+        for new_pos in self.get_move_range(old_pos):
+            if self.is_in_move_range(old_pos, new_pos) and new_pos != old_pos:
+                if self.tiles[old_pos].can_move(self.tiles[new_pos]):
+                    self.state.changed_tiles.update({new_pos : self.tiles[new_pos].get_tile_texture()})
+                    if self.tiles[new_pos].is_own(self.state.get_last_fraction()):
+                        self.tiles[new_pos].set_tile_texture(color) # color2
+                    else:
+                        self.tiles[new_pos].set_tile_texture(color)
+            elif new_pos == old_pos:
+                self.tiles[new_pos].set_tile_texture(color) # color2
+
+    def add_tile_to_state(self, pos):
+        self.state.changed_tiles.update({pos: self.tiles[pos].get_tile_texture()})
+
+    def select_tile(self, pos, color):
+        self.tiles[pos].set_tile_texture(color)
+
+    def unselect_tiles(self):
+        for (pos, texture) in self.state.changed_tiles.items():
+            self.tiles[pos].update_tile_texture(texture)
+        self.state.changed_tiles.clear()
+
+    def is_in_move_range(self, old, new):
+        return new in self.get_move_range(old)
+
+    def move_unit(self, old_pos, new_pos):
+        # tile = self.tiles[old_pos]
+        # if not tile.is_empty() and tile.is_used():
+        #     return False, False
+        # print(tile)
+
+        if old_pos == new_pos:
+            return False, False
+
+        if self.is_in_move_range(old_pos, new_pos):
+            tile = self.tiles[new_pos]
+            fraction_id = tile.get_tile_fraction_id()
+
+            if not tile.is_empty():
+                is_tree = tile.entity.entity_id == TREE_ID
+                if is_tree:
+                    self.state.get_last_fraction().money_amount -= tile.entity.cost  # todo add price instead of salary
+                if not is_tree and tile.entity.fraction_id == self.state.get_last_fraction().fraction_id:
+                    # попытка перейти на свою занятую клетку
+                    return False, False
+                delta = self.tiles[new_pos].kill_entity()
+                if fraction_id > 0:
+                    self.state.fractions[fraction_id].update_step_delta(delta)
+
+            moved = self.tiles[old_pos].move_to(new_pos, tile) # grid pos, tile
+            if moved:
+                move_in_own_tiles = fraction_id == self.state.get_last_fraction().fraction_id
+                if fraction_id > 0:
+                    tile.set_tile_fraction(self.state.get_last_fraction(), new_pos, self.state.fractions[fraction_id])
+                else:
+                    tile.set_tile_fraction(self.state.get_last_fraction(), new_pos)
+
+                # if not move_in_own_tiles:
+                #     if fraction_id > 0:
+                #         self.state.fractions[fraction_id].update_step_delta(-OWNED_TILE_SALARY)
+                #     self.state.get_last_fraction().update_step_delta(OWNED_TILE_SALARY)
+                return True, move_in_own_tiles
+        return False, False
+
+    def set_defence(self, new_pos, old_pos = None):
+        unit = self.tiles[new_pos]
+        fraction = self.state.get_last_fraction()
+
+        if unit.entity.damage_range == 1:
+            # Защита клеток: класс здоровья соседних в радиусе 1 становится таким же, как и у юнита
+            if old_pos:
+                prev_neighbours = self.count_neighbours(old_pos[0], old_pos[1])
+                for tile in prev_neighbours:
+                    if self.tiles[tile].is_own(fraction):
+                        self.tiles[tile].set_tile_health(OWNED_TILE_HP_CLASS)
+
+            neighbours = self.count_neighbours(new_pos[0], new_pos[1])
+            for tile in neighbours:
+                if self.tiles[tile].is_own(fraction):
+                    self.tiles[tile].set_tile_health(self.tiles[new_pos].entity.health)
+
+    def unuse_entity(self, tile):
+        self.tiles[tile].unuse_entity()
+
+    def use_entity(self, tile):
+        self.tiles[tile].use_entity()
+
+    def get_gold_delta(self, tile):
+        return self.tiles[tile].get_gold_delta()
+
+

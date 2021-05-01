@@ -19,13 +19,18 @@ FRACTIONS_CONFIG_PATH = "game_configs/fractions_config.json"
 ENTITIES_CONFIG = jsonread(ENTITIES_CONFIG_PATH)
 FRACTIONS_CONFIG = jsonread(FRACTIONS_CONFIG_PATH)
 
+TREE_ID = ENTITIES_CONFIG["tree"]["type_id"]
+OWNED_TILE_ID = ENTITIES_CONFIG["ownedtile"]["type_id"]
+OWNED_TILE_HP_CLASS = ENTITIES_CONFIG["ownedtile"]["health"]
+OWNED_TILE_SALARY = ENTITIES_CONFIG["ownedtile"]["salary"]
+
 COLORS = {
     "GREEN": color.GREEN_YELLOW,
     "RED": (199, 21, 133),
-    "BLUE": (13, 152, 186),
-    "AEROBLUE": color.AERO_BLUE
+    "BLUE": color.CAMBRIDGE_BLUE,
+    "COLUMBIA_BLUE": color.COLUMBIA_BLUE,
+    "BLUEGRAY": color.BLUE_GRAY
 }
-
 
 
 class Assets:

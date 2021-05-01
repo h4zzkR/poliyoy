@@ -90,7 +90,8 @@ class AbstractEntityDirector(ABC):
         self._builder.set_entity_type(ENTITIES_CONFIG[typename]["type_id"])
         self._builder.set_position(position)
         try:
-            self.apply_modifiers(ENTITIES_CONFIG[f"fraction{self._builder.entity.fraction_id}_modifiers"])
+            if self._builder.entity.entity_id >= 0:
+                self.apply_modifiers(ENTITIES_CONFIG[f"fraction{self._builder.entity.fraction_id}_modifiers"])
         except Exception:
             raise AttributeError("You must set fraction id")
         return self

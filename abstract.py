@@ -11,6 +11,9 @@ class AbstractEntity(ABC):
     damage_range: int
     move_range: int
     position: (int, int)
+    texture_scale: float
+    cost_scale: int
+    used_in_step: bool = False
 
     def attacked(self, hp : int):
         pass
@@ -37,8 +40,8 @@ class AbstractEntity(ABC):
         key = param_dict.keys()[0]
         self.__dict__[key] = param_dict[key]
 
-    def move_to(self, tyle):
-        pass
+    def move_to(self, pos):
+        self.position = pos
 
     def __copy__(self):
         new_entity = self.__class__()
@@ -50,6 +53,7 @@ class AbstractEntity(ABC):
         new_entity.damage_range = self.damage_range
         new_entity.move_range = self.move_range
         new_entity.position = self.position
+        new_entity.texture_scale = self.texture_scale
         new_entity.__dict__.update(self.__dict__)
         return new_entity
 
