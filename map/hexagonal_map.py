@@ -4,48 +4,10 @@ from random import randint
 import arcade
 import numpy as np
 
+from game_state import GameState
 from .tiles import TileDecorator
-from config import ASSETS, TREE_ID, OWNED_TILE_HP_CLASS, OWNED_TILE_SALARY
+from config import TREE_ID, OWNED_TILE_HP_CLASS
 
-
-class GameState(object):
-
-    last_mouse_tile_pos = (-1, -1)
-    last_mouse_right_tile_pos = (-1, -1)
-    last_mouse_tile_texture = ASSETS.hex_textures["GREEN"]
-    last_fraction = None
-
-    changed_tiles = dict()
-    fractions = dict()
-
-    def __new__(cls):
-        if not hasattr(cls, 'instance'):
-            cls.instance = super(GameState, cls).__new__(cls)
-        return cls.instance
-
-    def set_pos(self, col, row):
-        self.last_mouse_tile_pos = (col, row)
-
-    def set_right_pos(self, col, row):
-        self.last_mouse_right_tile_pos = (col, row)
-
-    def set_texture(self, texture):
-        self.last_mouse_tile_texture = texture
-
-    def set_fraction(self, fraction):
-        self.last_fraction = fraction
-
-    def set_fractions(self, fractions: list):
-        self.fractions = dict()
-        for fraction in fractions:
-            self.fractions.update({fraction.fraction_id: fraction})
-
-    def append_to_tiles(self, pos, texture):
-        self.changed_tiles.update({pos : texture})
-
-    def get_last_fraction(self):
-        return self.last_fraction
-        # return self.fractions[self.last_fraction]
 
 class HexMap:
     textures_list = {}
@@ -245,9 +207,11 @@ class HexMap:
         :return:
         """
         pos = self.tiles_list[randint(0, len(self.tiles) - 1)]
+        entity = fraction.build_entity(2, pos, True)
         self.tiles[pos].set_entity(
-            fraction.build_entity(2, pos)
+            entity
         )
+        fraction.add_money(entity.cost) # кешбек
 
         # Hexmap handle the rednering, so you need to provide access to sprites
         self.sprite_tiles.append(self.tiles[pos].sprite_entity)
@@ -271,7 +235,6 @@ class HexMap:
         :param id:
         :return:
         """
-        # try:
         if pos in fraction.tiles.keys(): # спавн только на собственных территориях
             entity = self.tiles[pos].entity
             if self.tiles[pos].is_owned_tile():
@@ -282,12 +245,14 @@ class HexMap:
                 if entity is not None and entity.entity_id == TREE_ID:
                     fraction.money_amount -= entity.salary  # todo add price instead of salary
                     self.tiles[pos].sprite_entity.remove_from_sprite_lists()
-            else:
+            else:  # TODO UNCOMMENT
                 return False
             obj = fraction.build_entity(entity_id, pos)
-            self.tiles[pos].set_entity(obj)
-            self.sprite_tiles.append(self.tiles[pos].sprite_entity)
-            return True
+            if obj:
+                self.tiles[pos].set_entity(obj)
+                self.sprite_tiles.append(self.tiles[pos].sprite_entity)
+
+                return True
         return False
 
     def get_move_range(self, old_pos):
@@ -304,7 +269,6 @@ class HexMap:
         # return list(out)
 
     def show_move_range(self, old_pos, color, color2):
-        from config import COLORS
         for new_pos in self.get_move_range(old_pos):
             if self.is_in_move_range(old_pos, new_pos) and new_pos != old_pos:
                 if self.tiles[old_pos].can_move(self.tiles[new_pos]):
@@ -331,12 +295,17 @@ class HexMap:
         return new in self.get_move_range(old)
 
     def move_unit(self, old_pos, new_pos):
-        # tile = self.tiles[old_pos]
-        # if not tile.is_empty() and tile.is_used():
-        #     return False, False
-        # print(tile)
+        """
 
+        :param old_pos:
+        :param new_pos:
+        :return: is_moved, move_in_own_tiles : флаг сделанного хода, флаг того, что ходили не внури своей территории
+        """
         if old_pos == new_pos:
+            return False, False
+
+        if not self.tiles[old_pos].is_empty() and self.tiles[old_pos].is_used():
+            # Уже походили
             return False, False
 
         if self.is_in_move_range(old_pos, new_pos):
@@ -344,9 +313,10 @@ class HexMap:
             fraction_id = tile.get_tile_fraction_id()
 
             if not tile.is_empty():
+
                 is_tree = tile.entity.entity_id == TREE_ID
                 if is_tree:
-                    self.state.get_last_fraction().money_amount -= tile.entity.cost  # todo add price instead of salary
+                    self.state.get_last_fraction().money_amount -= tile.entity.cost
                 if not is_tree and tile.entity.fraction_id == self.state.get_last_fraction().fraction_id:
                     # попытка перейти на свою занятую клетку
                     return False, False
@@ -362,10 +332,6 @@ class HexMap:
                 else:
                     tile.set_tile_fraction(self.state.get_last_fraction(), new_pos)
 
-                # if not move_in_own_tiles:
-                #     if fraction_id > 0:
-                #         self.state.fractions[fraction_id].update_step_delta(-OWNED_TILE_SALARY)
-                #     self.state.get_last_fraction().update_step_delta(OWNED_TILE_SALARY)
                 return True, move_in_own_tiles
         return False, False
 

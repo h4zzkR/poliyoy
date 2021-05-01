@@ -51,18 +51,18 @@ class AbstractEntityDirector(ABC):
     def builder(self, builder):
         self._builder = builder
 
-    def apply_modifiers(self, config: dict):
-        """
-        У фракций есть определенные 'способности',
-        так у одной фракции может быть дополнительный урон юнитов,
-        у другой - больше здоровья для юнитов. Этот метод применяет модификаторы
-        характеристик к объекту
-        :param config:
-        :return:
-        """
-        for item in config.items():
-            # print(self._builder.entity)
-            self._builder.entity.__dict__[item[0]] *= item[1]
+    # def apply_modifiers(self, config: dict):
+    #     """
+    #     У фракций есть определенные 'способности',
+    #     так у одной фракции может быть дополнительный урон юнитов,
+    #     у другой - больше здоровья для юнитов. Этот метод применяет модификаторы
+    #     характеристик к объекту
+    #     :param config:
+    #     :return:
+    #     """
+    #     for item in config.items():
+    #         # print(self._builder.entity)
+    #         self._builder.entity.__dict__[item[0]] *= item[1]
 
     def set_fraction(self, fraction_id):
         """
@@ -74,12 +74,12 @@ class AbstractEntityDirector(ABC):
         return self
 
     def fraction0(self):
-        self.apply_modifiers(ENTITIES_CONFIG["fraction0_modifiers"])
+        # self.apply_modifiers(ENTITIES_CONFIG["fraction0_modifiers"])
         self._builder.set_fraction(0)
         return self
 
     def fraction1(self):
-        self.apply_modifiers(ENTITIES_CONFIG["fraction1_modifiers"])
+        # self.apply_modifiers(ENTITIES_CONFIG["fraction1_modifiers"])
         self._builder.set_fraction(1)
         return self
 
@@ -87,13 +87,13 @@ class AbstractEntityDirector(ABC):
         typename = TypeInfo.id2typename.get(entity_type_id)
         for item in ENTITIES_CONFIG[typename].items():
             self._builder.set_parameter(item)
-        self._builder.set_entity_type(ENTITIES_CONFIG[typename]["type_id"])
+        self._builder.set_entity_type(ENTITIES_CONFIG[typename]["entity_id"])
         self._builder.set_position(position)
-        try:
-            if self._builder.entity.entity_id >= 0:
-                self.apply_modifiers(ENTITIES_CONFIG[f"fraction{self._builder.entity.fraction_id}_modifiers"])
-        except Exception:
-            raise AttributeError("You must set fraction id")
+        # try:
+        #     if self._builder.entity.entity_id >= 0:
+        #         self.apply_modifiers(ENTITIES_CONFIG[f"fraction{self._builder.entity.fraction_id}_modifiers"])
+        # except Exception:
+        #     raise AttributeError("You must set fraction id")
         return self
 
     def get(self):
@@ -113,11 +113,11 @@ class EntityDirector(AbstractEntityDirector):
         super(EntityDirector, self).__init__()
 
     def build_archer(self, position=(None, None)):
-        self.build_entity(TypeInfo.typename2id["archer"], position)
+        self.build_entity(TypeInfo.typename2id["scout"], position)
         return self
 
     def build_swordsman(self, position=(None, None)):
-        self.build_entity(TypeInfo.typename2id["swordsman"], position)
+        self.build_entity(TypeInfo.typename2id["warrior"], position)
         return self
 
     def build_village(self, position=(None, None)):
@@ -125,7 +125,7 @@ class EntityDirector(AbstractEntityDirector):
         return self
 
     def build_defence_tower(self, position=(None, None)):
-        self.build_entity(TypeInfo.typename2id["defencetower"], position)
+        self.build_entity(TypeInfo.typename2id["tower"], position)
         return self
 
 
@@ -135,9 +135,9 @@ if __name__ == "__main__":
     # director1.builder = UnitBuilder()
     # director1._builder = UnitBuilder()
     # archer = director1.build_archer().fraction0().get()
-    # swordsman = director1.build_swordsman().fraction1().get()
+    # warrior = director1.build_swordsman().fraction1().get()
     # 
     # director2 = BuildingsDirector()
     # director2._builder = BuildingBuilder()
     # village = director2.build_village().fraction1().get()
-    # print(village.hash(), swordsman.hash())
+    # print(village.hash(), warrior.hash())

@@ -108,7 +108,6 @@ class TileDecorator(Hex):
 
         if oth_tile.is_owned_tile() or oth_tile.is_empty():
             if self.is_used():
-                print("ENTITY USED IN STEP")
                 return False
             oth_tile.sprite_entity = self.sprite_entity
             oth_tile.entity = self.entity

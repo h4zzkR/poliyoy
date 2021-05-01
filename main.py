@@ -1,11 +1,11 @@
 import arcade
 from arcade.gui import UIFlatButton, UIGhostFlatButton, UIManager
-from map.hexagonal_map import HexMap, GameState
-from arcade.gui.ui_style import UIStyle
+from map.hexagonal_map import HexMap
+from game_state import GameState
 from fractions import Fraction
-from config import FRACTIONS_CONFIG, MAP_HEX_RADIUS, ASSETS
+from config import FRACTIONS_CONFIG, MAP_HEX_RADIUS, ASSETS, ENTITY_ID2COST
 from ui import PlaceEntityButton, NextStepButton
-from control import MoveUnit
+from control import SpawnEntity, NextStep, UpdateGameState, MoveUnit
 
 
 class Game(arcade.Window):
@@ -33,7 +33,6 @@ class Game(arcade.Window):
         arcade.set_background_color(arcade.color.BLACK)
 
         self.ui_manager = UIManager()
-
         self.ui_margin_left = self.w / 30
         self.ui_margin_top = self.h / 10
 
@@ -66,8 +65,6 @@ class Game(arcade.Window):
         :return:
         """
 
-        from control import SpawnEntity, NextStep
-
         btn_w, btn_h = 50,50
 
         self.map.create_map()
@@ -81,20 +78,30 @@ class Game(arcade.Window):
         next_btn.set_command(NextStep(self))
         self.ui_manager.add_ui_element(next_btn)
 
-        btn1 = PlaceEntityButton(text="V", center_x=self.w + self.ui_margin_left,  # village
-                                center_y=next_btn.center_y - 1.2 * btn_h, width=btn_w, height=btn_h)
-        btn1.set_command(SpawnEntity(self.map, self.map_state, 2))
+        btn1 = PlaceEntityButton(text=f"V: {ENTITY_ID2COST[2]}", center_x=self.w + self.ui_margin_left,  # village
+                                center_y=next_btn.center_y - 1.2 * btn_h, width=btn_w, height=btn_h, id="village")
+        btn1.set_command(SpawnEntity(self.map, self.map_state, 2, UpdateGameState(self)))
         self.ui_manager.add_ui_element(btn1)
 
-        btn2 = PlaceEntityButton(text="S", center_x=btn1.center_x + btn_w * 1.2,  # village
-                                center_y=btn1.center_y, width=btn_w, height=btn_h)
-        btn2.set_command(SpawnEntity(self.map, self.map_state, 1))
+        btn2 = PlaceEntityButton(text=f"W: {ENTITY_ID2COST[1]}", center_x=btn1.center_x + btn_w * 1.2,
+                                center_y=btn1.center_y, width=btn_w, height=btn_h, id="warrior")
+        btn2.set_command(SpawnEntity(self.map, self.map_state, 1, UpdateGameState(self)))
         self.ui_manager.add_ui_element(btn2)
+
+        btn3 = PlaceEntityButton(text=f"S: {ENTITY_ID2COST[0]}", center_x=btn1.center_x,
+                                center_y=btn1.center_y - 1.2 * btn_h, width=btn_w, height=btn_h, id="scout")
+        btn3.set_command(SpawnEntity(self.map, self.map_state, 0, UpdateGameState(self)))
+        self.ui_manager.add_ui_element(btn3)
+
+        btn4 = PlaceEntityButton(text=f"T: {ENTITY_ID2COST[3]}", center_x=btn2.center_x,
+                                center_y=btn3.center_y, width=btn_w, height=btn_h, id="tower")
+        btn4.set_command(SpawnEntity(self.map, self.map_state, 3, UpdateGameState(self)))
+        self.ui_manager.add_ui_element(btn4)
 
         money_label = arcade.gui.UILabel(
             f'Gold: {self.hosts[self.gamer_host].money_amount}',
-            center_x=btn1.center_x + btn_w * 0.55,
-            center_y=btn1.center_y - btn_h,
+            center_x=btn3.center_x + btn_w * 0.55,
+            center_y=btn3.center_y - btn_h,
             id="money_amount"
         )
         self.ui_manager.add_ui_element(money_label)
@@ -109,15 +116,18 @@ class Game(arcade.Window):
 
 
 
-        # from control import SpawnEntity
         # back = self.map_state.last_mouse_tile_pos
         # back2 = self.map_state.last_fraction
-        # self.map_state.last_mouse_tile_pos = self.hosts[not self.active_host].fraction_capital_pos
+        # self.hosts[not self.active_host].money_amount = 9999
+        #
+        # pos = self.hosts[not self.active_host].fraction_capital_pos
+        # self.map_state.last_mouse_tile_pos = pos
         # self.map_state.last_fraction = self.hosts[not self.active_host]
-        # obj = SpawnEntity(self.map, self.map_state, 1)
+        # obj = SpawnEntity(self.map, self.map_state, 1, UpdateGameState(self))
         # obj.execute()
         # self.map_state.last_mouse_tile_pos = back
         # self.map_state.last_fraction = back2
+        # sys.exit()
 
     def on_draw(self):
         """
@@ -142,6 +152,21 @@ class Game(arcade.Window):
     def update_screen_info(self):
         self.ui_manager.find_by_id("money_amount").text = "Gold: " + str(self.hosts[self.gamer_host].money_amount)
         self.ui_manager.find_by_id("money_step").text = "Delta: " + str(self.hosts[self.gamer_host].step_delta)
+
+    def update_village_btn(self):
+        # Тяжелая операция, поэтому случай обрабатывается отдельно
+        # # Дальше костыль для обновления текста кнопки (в либе такое, почему-то, не предусмотрено)
+        btn = self.ui_manager.find_by_id("village")
+        center_x, center_y, w, h, text = btn.center_x, btn.center_y, btn.width, btn.height, btn.text
+
+        btn.remove_from_sprite_lists()
+        del self.ui_manager._id_cache["village"]  # sorry for that
+
+        cost = self.hosts[self.gamer_host].village_cost
+        btn = PlaceEntityButton(text=f"V: {cost}", center_x=center_x,  # village
+                                center_y=center_y, width=w, height=h, id="village")
+        btn.set_command(SpawnEntity(self.map, self.map_state, 2, UpdateGameState(self)))
+        self.ui_manager.add_ui_element(btn)
 
     def update_game_state(self):
         for host in self.hosts:
@@ -171,7 +196,7 @@ class Game(arcade.Window):
             unit_pos = self.map_state.last_mouse_tile_pos
             if unit_pos in host.units_pos.keys():
                 self.map_state.last_mouse_right_tile_pos = pos
-                command = MoveUnit(self.map, self.map_state)
+                command = MoveUnit(self.map, self.map_state, UpdateGameState(self))
                 command.execute()
 
             if pos in host.tiles.keys():

@@ -1,5 +1,5 @@
 from builders import EntityBuilder, EntityDirector
-from config import OWNED_TILE_ID, OWNED_TILE_SALARY
+from config import OWNED_TILE_ID, OWNED_TILE_SALARY, ENTITIES_CONFIG, ENTITY_ID2COST
 
 
 class Fraction:
@@ -13,6 +13,9 @@ class Fraction:
     fraction_capital_pos: tuple
     step_delta: int # число, прибавляемое на каждом шаге
 
+    village_spawned_cnt = 1
+    village_cost = ENTITY_ID2COST[2]
+
     def __init__(self, color, fraction_id, isBot=False):
         self.color = color
         self.fraction_id = fraction_id
@@ -20,19 +23,34 @@ class Fraction:
         self.tiles = dict()
         self.units_pos = dict()
         self.fraction_capital_pos = ()
-        self.step_delta = 0
+        self.step_delta = 1
 
         self.entity_director = EntityDirector()
         self.entity_director.builder = EntityBuilder()
 
-    def build_entity(self, entity_id: int, pos: tuple = None):
+    def build_entity(self, entity_id: int, pos: tuple = None, no_update = False):
         self.entity_director.set_fraction(self.fraction_id)
         entity = self.entity_director.build_entity(entity_id, pos).get()
+
+        if not no_update and entity_id == 2:
+            if self.village_cost > self.money_amount:
+                return None
+            self.money_amount -= self.village_cost
+            self.village_spawned_cnt += 1
+            self.village_cost = ENTITIES_CONFIG["village"]["cost"] * self.village_spawned_cnt
+
+        else:
+            if entity.cost > self.money_amount:
+                return None
+            self.money_amount -= entity.cost
+
         if entity.move_range == 0 or entity_id < 0: # постройка
             self.tiles.update({pos : entity})
         else:
             self.units_pos.update({pos : entity})
+
         self.step_delta -= entity.salary
+
         return entity
 
     def move_unit(self, old_pos, new_pos, flag):
@@ -52,6 +70,9 @@ class Fraction:
 
     def update_step_delta(self, delta):
         self.step_delta += delta
+
+    def add_money(self, amount):
+        self.money_amount += amount
 
     def update_state(self):
         pass

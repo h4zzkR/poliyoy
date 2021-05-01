@@ -19,8 +19,8 @@ FRACTIONS_CONFIG_PATH = "game_configs/fractions_config.json"
 ENTITIES_CONFIG = jsonread(ENTITIES_CONFIG_PATH)
 FRACTIONS_CONFIG = jsonread(FRACTIONS_CONFIG_PATH)
 
-TREE_ID = ENTITIES_CONFIG["tree"]["type_id"]
-OWNED_TILE_ID = ENTITIES_CONFIG["ownedtile"]["type_id"]
+TREE_ID = ENTITIES_CONFIG["tree"]["entity_id"]
+OWNED_TILE_ID = ENTITIES_CONFIG["ownedtile"]["entity_id"]
 OWNED_TILE_HP_CLASS = ENTITIES_CONFIG["ownedtile"]["health"]
 OWNED_TILE_SALARY = ENTITIES_CONFIG["ownedtile"]["salary"]
 
@@ -32,6 +32,13 @@ COLORS = {
     "BLUEGRAY": color.BLUE_GRAY
 }
 
+ENTITY_ID2COST = dict()
+for entity in ENTITIES_CONFIG.keys():
+    ENTITY_ID2COST.update({
+        ENTITIES_CONFIG[entity]["entity_id"] : ENTITIES_CONFIG[entity]["cost"]
+    })
+
+
 
 class Assets:
     def __init__(self):
@@ -40,7 +47,7 @@ class Assets:
         for key in ENTITIES_CONFIG.keys():
             try:
                 self.entities_textures.update(
-                    { ENTITIES_CONFIG[key]["type_id"] : ENTITIES_CONFIG[key]["texture"] }
+                    { ENTITIES_CONFIG[key]["entity_id"] : ENTITIES_CONFIG[key]["texture"] }
                 )
             except KeyError:
                 pass

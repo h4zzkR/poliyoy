@@ -13,6 +13,7 @@ class AbstractEntity(ABC):
     position: (int, int)
     texture_scale: float
     cost_scale: int
+    cost: int
     used_in_step: bool = False
 
     def attacked(self, hp : int):
