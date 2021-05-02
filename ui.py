@@ -103,7 +103,7 @@ def update_ui(game_obj):
     btn.remove_from_sprite_lists()
     del game_obj.ui_manager._id_cache["village"]  # sorry for that
 
-    cost = game_obj.hosts[game_obj.gamer_host].village_cost
+    cost = game_obj.state.get_last_fraction().village_cost
     btn = PlaceEntityButton(text=f"V: {cost}", center_x=center_x,  # village
                             center_y=center_y, width=w, height=h, id="village")
     btn.set_command(SpawnEntity(game_obj.map, game_obj.state, 2, UpdateGameState(game_obj)))

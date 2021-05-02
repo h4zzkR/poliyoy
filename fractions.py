@@ -15,6 +15,7 @@ class Fraction:
 
     village_spawned_cnt = 1
     village_cost = ENTITY_ID2COST[2]
+    village_cost_prev = ENTITY_ID2COST[2]
 
     def __init__(self, color, fraction_id, isBot=False):
         self.color = color
@@ -37,6 +38,7 @@ class Fraction:
                 return None
             self.money_amount -= self.village_cost
             self.village_spawned_cnt += 1
+            self.village_cost_prev = self.village_cost
             self.village_cost = ENTITIES_CONFIG["village"]["cost"] * self.village_spawned_cnt
 
         else:

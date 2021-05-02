@@ -121,6 +121,10 @@ class Game(arcade.Window):
         self.state.set_fraction(self.active_host)  # upd last host
         self.update_screen_info()
 
+        fraction = self.state.get_last_fraction()
+        # if fraction.village_cost_prev != fraction.village_cost:
+        self.update_village_btn()
+
     def update_screen_info(self):
         self.ui_manager.find_by_id("money_amount").text = "Gold: " + str(self.state.get_last_fraction().money_amount)
         self.ui_manager.find_by_id("money_step").text = "Delta: " + str(self.state.get_last_fraction().step_delta)
