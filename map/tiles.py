@@ -26,7 +26,6 @@ class TileDecorator(Hex):
 
     def set_entity(self, entity: AbstractEntity = None) -> None:
         self.entity = entity
-        # if self.is_owned_tile():
         self.sprite_entity = Sprite(ASSETS.entities_textures[entity.entity_id], entity.texture_scale)
         self.sprite_entity.set_position(self.center_x, self.center_y)
         self.sprite_entity._points = None
@@ -133,14 +132,6 @@ class TileDecorator(Hex):
     def unuse_entity(self):
         if not self.is_empty():
             self.entity.used_in_step = False
-
-    # def get_gold_delta(self):
-    #     delta = 0
-    #     # if not self.is_empty():
-    #     #     delta += self.entity.salary
-    #     if self.is_owned_tile():
-    #         delta += self.owned.salary
-    #     return delta
 
     def on_select(self):
         pass

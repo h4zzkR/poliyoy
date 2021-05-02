@@ -18,11 +18,11 @@ class HexMap:
 
         self.__margin = 50  # hexagon map start margin
 
-        self.odd_layer_tiles_num = 15
+        self.odd_layer_tiles_num = 10
         self.even_layer_tiles_num = self.odd_layer_tiles_num + 1
 
         self.grid_x_size = self.even_layer_tiles_num
-        self.grid_y_size = 20
+        self.grid_y_size = 12
 
         self.sprite_tiles = arcade.SpriteList()
         self.tiles = dict()
@@ -44,6 +44,7 @@ class HexMap:
         self.state = GameState()
 
     def initialize_map(self):
+        # from .tiles import TileDecorator
         zero_hex = TileDecorator()
         zero_hex.init(self.hex_radius, shiftx=0,
                        shifty=self.__margin, fill_color=arcade.color.GREEN_YELLOW, outline_color="#918585", outline_width=5)
@@ -358,7 +359,5 @@ class HexMap:
     def use_entity(self, tile):
         self.tiles[tile].use_entity()
 
-    def get_gold_delta(self, tile):
-        return self.tiles[tile].get_gold_delta()
 
 

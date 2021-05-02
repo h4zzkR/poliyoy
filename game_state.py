@@ -8,7 +8,7 @@ class GameState(object):
     last_mouse_tile_pos = (-1, -1)
     last_mouse_right_tile_pos = (-1, -1)
     last_mouse_tile_texture = ASSETS.hex_textures["GREEN"]
-    last_fraction = None
+    last_fraction_id = None
 
     changed_tiles = dict()
     fractions = dict()
@@ -27,8 +27,11 @@ class GameState(object):
     def set_texture(self, texture):
         self.last_mouse_tile_texture = texture
 
-    def set_fraction(self, fraction):
-        self.last_fraction = fraction
+    def set_fraction(self, fraction_id):
+        self.last_fraction = fraction_id
+
+    def append_fraction(self, fraction):
+        self.fractions.update({fraction.fraction_id : fraction})
 
     def set_fractions(self, fractions: list):
         self.fractions = dict()
@@ -39,5 +42,4 @@ class GameState(object):
         self.changed_tiles.update({pos : texture})
 
     def get_last_fraction(self):
-        return self.last_fraction
-        # return self.fractions[self.last_fraction]
+        return self.fractions[self.last_fraction]

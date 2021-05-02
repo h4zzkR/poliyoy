@@ -1,11 +1,17 @@
+from arcade.gui import UIFlatButton, UIManager
 import arcade
-from arcade.gui import UIFlatButton, UIGhostFlatButton, UIManager
-from map.hexagonal_map import HexMap
-from game_state import GameState
-from fractions import Fraction
-from config import FRACTIONS_CONFIG, MAP_HEX_RADIUS, ASSETS, ENTITY_ID2COST
-from ui import PlaceEntityButton, NextStepButton
+import time
+
+from easyAI import TwoPlayersGame, Human_Player, AI_Player, Negamax
+
+from config import FRACTIONS_CONFIG, MAP_HEX_RADIUS, ENTITY_ID2COST
 from control import SpawnEntity, NextStep, UpdateGameState, MoveUnit
+from fractions import Fraction
+from game_state import GameState
+from map.hexagonal_map import HexMap
+
+from arcade.gui import UIManager
+from ui import set_ui, update_ui
 
 
 class Game(arcade.Window):
@@ -24,17 +30,21 @@ class Game(arcade.Window):
     ui_margin_left = None
     ui_margin_top = None
 
+    game_over = False
+
     def __init__(self):
         self.map_state = GameState()
         self.map = HexMap(hex_radius=MAP_HEX_RADIUS)
         self.w, self.h = self.map.get_window_size()
-        super().__init__(self.w + self.w // 6, self.h, "Poliyoy")
+        super().__init__(self.w + self.w // 4, self.h, "Poliyoy")
 
         arcade.set_background_color(arcade.color.BLACK)
 
         self.ui_manager = UIManager()
-        self.ui_margin_left = self.w / 30
+        self.ui_margin_left = self.w / 15
         self.ui_margin_top = self.h / 10
+
+        self.game_iteration = 0
 
         self.setup()
 
@@ -46,8 +56,9 @@ class Game(arcade.Window):
     def init_hosts(self):
         for (e, frac) in enumerate(FRACTIONS_CONFIG.keys()):
             self.hosts.append(Fraction(**FRACTIONS_CONFIG[frac]))
+
             fraction = self.hosts[-1]
-            self.map_state.set_fraction(fraction)
+            self.map_state.append_fraction(fraction)
 
             if not fraction.isBot:
                 self.active_host = e
@@ -55,8 +66,7 @@ class Game(arcade.Window):
 
             self.map.place_fraction(fraction)
 
-        self.map_state.set_fractions(self.hosts)
-        self.map_state.set_fraction(self.hosts[self.active_host])
+        self.map_state.set_fraction(self.active_host)
 
     def setup(self):
         """
@@ -65,56 +75,12 @@ class Game(arcade.Window):
         :return:
         """
 
-        btn_w, btn_h = 50,50
-
         self.map.create_map()
         self.init_hosts()
-        self.map.after_init(self.hosts) # размещение на карте деревьев и т.п.
+        self.map.after_init(self.hosts)  # размещение на карте деревьев и т.п.
 
         self.ui_manager.purge_ui_elements()
-
-        next_btn = NextStepButton(text="Step", center_x=self.w + 2 * self.ui_margin_left,
-                                  center_y=self.h - self.ui_margin_top, width=btn_w * 2.1, height=btn_h)
-        next_btn.set_command(NextStep(self))
-        self.ui_manager.add_ui_element(next_btn)
-
-        btn1 = PlaceEntityButton(text=f"V: {ENTITY_ID2COST[2]}", center_x=self.w + self.ui_margin_left,  # village
-                                center_y=next_btn.center_y - 1.2 * btn_h, width=btn_w, height=btn_h, id="village")
-        btn1.set_command(SpawnEntity(self.map, self.map_state, 2, UpdateGameState(self)))
-        self.ui_manager.add_ui_element(btn1)
-
-        btn2 = PlaceEntityButton(text=f"W: {ENTITY_ID2COST[1]}", center_x=btn1.center_x + btn_w * 1.2,
-                                center_y=btn1.center_y, width=btn_w, height=btn_h, id="warrior")
-        btn2.set_command(SpawnEntity(self.map, self.map_state, 1, UpdateGameState(self)))
-        self.ui_manager.add_ui_element(btn2)
-
-        btn3 = PlaceEntityButton(text=f"S: {ENTITY_ID2COST[0]}", center_x=btn1.center_x,
-                                center_y=btn1.center_y - 1.2 * btn_h, width=btn_w, height=btn_h, id="scout")
-        btn3.set_command(SpawnEntity(self.map, self.map_state, 0, UpdateGameState(self)))
-        self.ui_manager.add_ui_element(btn3)
-
-        btn4 = PlaceEntityButton(text=f"T: {ENTITY_ID2COST[3]}", center_x=btn2.center_x,
-                                center_y=btn3.center_y, width=btn_w, height=btn_h, id="tower")
-        btn4.set_command(SpawnEntity(self.map, self.map_state, 3, UpdateGameState(self)))
-        self.ui_manager.add_ui_element(btn4)
-
-        money_label = arcade.gui.UILabel(
-            f'Gold: {self.hosts[self.gamer_host].money_amount}',
-            center_x=btn3.center_x + btn_w * 0.55,
-            center_y=btn3.center_y - btn_h,
-            id="money_amount"
-        )
-        self.ui_manager.add_ui_element(money_label)
-
-        money_step = arcade.gui.UILabel(
-            f'Delta: {self.hosts[self.gamer_host].step_delta}',
-            center_x=money_label.center_x,
-            center_y=money_label.center_y - btn_h * 0.65,
-            id="money_step"
-        )
-        self.ui_manager.add_ui_element(money_step)
-
-
+        set_ui(self)
 
         # back = self.map_state.last_mouse_tile_pos
         # back2 = self.map_state.last_fraction
@@ -132,8 +98,6 @@ class Game(arcade.Window):
     def on_draw(self):
         """
         Рендеринг различных объектов
-        Например, self.hosts[0].render() - рендерит клетки страны
-        и сущности страны на карте
         """
 
         # This command has to happen before we start drawing
@@ -146,8 +110,14 @@ class Game(arcade.Window):
         for host in self.hosts:
             for tile in host.tiles:
                 self.map.unuse_entity(tile)
-        self.hosts[1].make_step()
+        game_over = self.hosts[0].make_step()
+        game_over = self.hosts[1].make_step()
         self.update_screen_info()
+        if game_over:
+            self.game_over = True
+            # import sys
+            # sys.exit()
+        self.game_iteration += 1
 
     def update_screen_info(self):
         self.ui_manager.find_by_id("money_amount").text = "Gold: " + str(self.hosts[self.gamer_host].money_amount)
@@ -156,21 +126,7 @@ class Game(arcade.Window):
     def update_village_btn(self):
         # Тяжелая операция, поэтому случай обрабатывается отдельно
         # # Дальше костыль для обновления текста кнопки (в либе такое, почему-то, не предусмотрено)
-        btn = self.ui_manager.find_by_id("village")
-        center_x, center_y, w, h, text = btn.center_x, btn.center_y, btn.width, btn.height, btn.text
-
-        btn.remove_from_sprite_lists()
-        del self.ui_manager._id_cache["village"]  # sorry for that
-
-        cost = self.hosts[self.gamer_host].village_cost
-        btn = PlaceEntityButton(text=f"V: {cost}", center_x=center_x,  # village
-                                center_y=center_y, width=w, height=h, id="village")
-        btn.set_command(SpawnEntity(self.map, self.map_state, 2, UpdateGameState(self)))
-        self.ui_manager.add_ui_element(btn)
-
-    def update_game_state(self):
-        for host in self.hosts:
-            host.update_state()
+        update_ui(self)
 
     def on_mouse_press(self, x, y, button, modifiers):
         """
@@ -202,17 +158,83 @@ class Game(arcade.Window):
             if pos in host.tiles.keys():
                 pass
 
-        # self.map_state.set_fraction(self.hosts[(self.active_host + 1) % 2]) # upd last host
-        self.map_state.set_fraction(self.hosts[self.active_host]) # upd last host
-        self.update_game_state()
+        # print(self.active_host, self.map_state.get_last_fraction().fraction_id)
+        # self.active_host = not self.active_host
+        self.map_state.set_fraction(self.active_host)  # upd last host
 
     def bot_move(self):
         pass
 
 
-if __name__ == "__main__":
-    Game()
-    arcade.run()
+class GameEnvironment(TwoPlayersGame):
+    def __init__(self, players):
+        self.players = players
+        self.pile = 20  # start with 20 bones in the pile
+        self.nplayer = 1  # player 1 starts
+        self.game_window = None
+        self.set_game_window()
 
-    # a = arcade.Sprite()
-    # a.textures
+    def set_game_window(self):
+        self.game_window = Game()
+        self.nplayer = self.game_window.gamer_host + 1
+
+    def possible_moves(self): return ['1', '2', '3']
+
+    def make_move(self, move): self.pile -= int(move)  # remove bones.
+
+    def win(self): return self.pile <= 0  # opponent took the last bone ?
+
+    # def is_over(self): return self.win() # Game stops when someone wins.
+    def is_over(self):
+        return self.game_window.game_over
+
+    def show(self): print("%d bones left in the pile" % self.pile)
+
+    def scoring(self): return 100 if game.win() else 0  # For the AI
+
+
+if __name__ == "__main__":
+    game = GameEnvironment([Human_Player(), AI_Player(Negamax(9))])
+    has_exit = False
+
+
+    @game.game_window.event
+    def on_close():
+        global has_exit
+        print("Game over")
+        has_exit = True
+
+
+    game_iters = 0
+
+    start_time = time.time()
+    while not game.is_over():
+        if has_exit:
+            break
+        # game.show()
+        # if game.nplayer == 1:  # we are assuming player 1 is a Human_Player
+        #     poss = game.possible_moves()
+        #     for index, move in enumerate(poss):
+        #         print("{} : {}".format(index, move))
+        #     index = int(input("enter move: "))
+        #     move = poss[index]
+        # else:  # we are assuming player 2 is an AI_Player
+        #     move = game.get_move()
+        #     print("AI plays {}".format(move))
+        #
+        # game.play_move(move)
+
+        game.game_window.switch_to()
+        game.game_window.dispatch_events()
+        game.game_window.dispatch_event('on_draw')
+        game.game_window.flip()
+
+        game_iters = game.game_window.game_iteration
+
+        current_time = time.time()
+        elapsed_time = current_time - start_time
+        start_time = current_time
+        if elapsed_time < 1. / 60.:
+            sleep_time = (1. / 60.) - elapsed_time
+            time.sleep(sleep_time)
+        game.game_window._dispatch_updates(1 / 60)

@@ -67,6 +67,9 @@ class Fraction:
     def make_step(self):
         # self.money_amount -= delta
         self.money_amount += self.step_delta
+        if self.money_amount < 0:
+            return True
+        return False
 
     def update_step_delta(self, delta):
         self.step_delta += delta

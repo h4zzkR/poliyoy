@@ -16,14 +16,12 @@ class SpawnEntity(Command):
         self.update = update_state_command
 
     def execute(self) -> None:
-        self._receiver2 = self.map_state.last_fraction
+        self._receiver2 = self.map_state.get_last_fraction()
         pos = self.map_state.last_mouse_tile_pos
         spawned = self._receiver1.spawn_entity(self.entity_id, self.map_state.last_mouse_tile_pos, self._receiver2)
         if spawned:
             self._receiver1.set_defence(pos)
             self.update.execute(self.entity_id)
-
-            # self.map_state.get_last_fraction().step_gold_delta()
 
 
 class MoveUnit(Command):
@@ -34,7 +32,7 @@ class MoveUnit(Command):
         self.update = update_state_command
 
     def execute(self) -> None:
-        self.fraction = self.map_state.last_fraction
+        self.fraction = self.map_state.get_last_fraction()
         old_pos = self.map_state.last_mouse_tile_pos
         new_pos = self.map_state.last_mouse_right_tile_pos
 
