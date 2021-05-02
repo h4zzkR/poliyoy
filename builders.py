@@ -1,7 +1,6 @@
-from abc import ABC, abstractmethod
+from abc import ABC
 
 from abstract import AbstractEntity
-from config import *
 from entity import *
 
 
@@ -36,6 +35,7 @@ class AbstractEntityBuilder(ABC):
     def set_entity_type(self, entity_type_id):
         self.entity.entity_id = entity_type_id
         self.entity.__class__ = TypeInfo.id2type[entity_type_id]
+
 
 class AbstractEntityDirector(ABC):
     _builder: AbstractEntityBuilder
@@ -98,14 +98,16 @@ class AbstractEntityDirector(ABC):
 
     def get(self):
         return self._builder.get()
-    
+
+
 class EntityBuilder(AbstractEntityBuilder):
-    
+
     def __init__(self):
         super(EntityBuilder, self).__init__()
-        
+
     def set_position(self, position):
         self.entity.position = position
+
 
 class EntityDirector(AbstractEntityDirector):
 

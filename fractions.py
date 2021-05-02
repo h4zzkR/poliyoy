@@ -78,6 +78,3 @@ class Fraction:
 
     def add_money(self, amount):
         self.money_amount += amount
-
-    def update_state(self):
-        pass

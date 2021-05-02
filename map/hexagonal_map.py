@@ -1,12 +1,11 @@
 import math
-from random import randint
 
 import arcade
 import numpy as np
 
+from config import TREE_ID, OWNED_TILE_HP_CLASS
 from game_state import GameState
 from .tiles import TileDecorator
-from config import TREE_ID, OWNED_TILE_HP_CLASS
 
 
 class HexMap:
@@ -22,6 +21,7 @@ class HexMap:
         self.even_layer_tiles_num = self.odd_layer_tiles_num + 1
 
         self.grid_x_size = self.even_layer_tiles_num
+        # self.grid_y_size = 12
         self.grid_y_size = 12
 
         self.sprite_tiles = arcade.SpriteList()
@@ -31,9 +31,10 @@ class HexMap:
         self.sprite_layer = arcade.SpriteList()
         self.sprites = dict()
 
-        self.MAGICK_X_CONST = 1.84
-        self.MAGICK_Y_CONST = 1.63
+        self.windows_width_scale_factor = 1.84
+        self.windows_height_scale_factor = 1.63
         # получено опытным путем при исследовании поведения отрисовки картинок Pillow
+        # влияют на размер окна относительно размера гексагонов
 
         self.width, self.height = self.get_window_size()
 
@@ -47,7 +48,8 @@ class HexMap:
         # from .tiles import TileDecorator
         zero_hex = TileDecorator()
         zero_hex.init(self.hex_radius, shiftx=0,
-                       shifty=self.__margin, fill_color=arcade.color.GREEN_YELLOW, outline_color="#918585", outline_width=5)
+                      shifty=self.__margin, fill_color=arcade.color.GREEN_YELLOW, outline_color="#918585",
+                      outline_width=5)
 
         # посчитать координаты центра первого гексагона
         hex = zero_hex.__copy__()
@@ -74,7 +76,7 @@ class HexMap:
             odd = not odd
 
         self.hex_size = hex.texture.width
-        self.tiles_list = list(self.tiles.keys())
+        # self.tiles_list = list(self.tiles.keys())
 
     def create_map(self):
         """
@@ -91,8 +93,8 @@ class HexMap:
         self.sprite_layer.draw()
 
     def get_window_size(self):
-        return (int(self.grid_x_size * self.hex_radius * self.MAGICK_X_CONST),
-                int(self.grid_y_size * self.hex_radius * self.MAGICK_Y_CONST))
+        return (int(self.grid_x_size * self.hex_radius * self.windows_width_scale_factor),
+                int(self.grid_y_size * self.hex_radius * self.windows_height_scale_factor))
 
     def locate(self, x, y):
         """
@@ -147,6 +149,10 @@ class HexMap:
         except KeyError:
             print(col, row, self.tiles)
 
+    def get_random_positions(self):
+        tiles_list = list(self.tiles.keys())
+        return [tiles_list[i] for i in np.unique(np.random.choice(range(0, len(tiles_list)), len(tiles_list) // 9))]
+
     def get_tile(self, row, col):
         return self.tiles[col][row]
 
@@ -179,48 +185,23 @@ class HexMap:
 
         return dirs
 
-    def after_init(self, fractions = None):
-        """
-        Запуск после размещения fractions
-        :return:
-        """
-        # random trees on map
-        trees = [self.tiles_list[i] for i in np.unique(np.random.choice(range(0, len(self.tiles_list)), len(self.tiles_list) // 9))]
-        self.trees = {}
-
-        fractions_pos = [f.fraction_capital_pos for f in fractions]
-
-        from builders import EntityBuilder, EntityDirector
-
-        director = EntityDirector()
-        director.builder = EntityBuilder()
-        for i in trees:
-            if i not in fractions_pos:
-                pos = (self.tiles[i].center_x, self.tiles[i].center_y)
-                tree = director.build_entity(entity_type_id=TREE_ID, position=pos).get()
-                self.tiles[i].set_entity(tree)
-                self.sprite_layer.append(self.tiles[i].sprite_entity)
-
-    def place_fraction(self, fraction):
+    def place_fraction(self, fraction, pos):
         """
         Set fraction position and change tiles
         :param fraction:
         :return:
         """
-        pos = self.tiles_list[randint(0, len(self.tiles) - 1)]
+        # pos = self.tiles_list[randint(0, len(self.tiles) - 1)]
         entity = fraction.build_entity(2, pos, True)
         self.tiles[pos].set_entity(
             entity
         )
-        fraction.add_money(entity.cost) # кешбек
+        fraction.add_money(entity.cost)  # кешбек
 
         # Hexmap handle the rednering, so you need to provide access to sprites
         self.sprite_tiles.append(self.tiles[pos].sprite_entity)
         fraction.fraction_capital_pos = pos
         self.tiles[pos].set_tile_fraction(fraction, pos)
-
-        # obj = fraction.build_entity(1, pos)
-        # self.spawn_entity(obj, pos, fraction)
 
         country_tiles = self.count_neighbours(*pos)
         for tile in country_tiles:
@@ -229,22 +210,22 @@ class HexMap:
                 if self.tiles[tile].entity is None:
                     self.tiles[tile].set_tile_fraction(fraction, tile)
 
-    def spawn_entity(self, entity_id, pos: tuple, fraction):
+    def spawn_entity(self, entity_id, pos: tuple, fraction, ignore_owness=False):
         """
         Add new sprite to spritelist
         :param pos:
         :param id:
         :return:
         """
-        if pos in fraction.tiles.keys(): # спавн только на собственных территориях
+        if pos in fraction.tiles.keys() or ignore_owness == True:  # спавн только на собственных территориях
             entity = self.tiles[pos].entity
             if self.tiles[pos].is_owned_tile():
                 if self.tiles[pos].owned.fraction_id != fraction.fraction_id:
                     return False
 
-            if entity is None or entity.entity_id < 0: # TODO UNCOMMENT
-                if entity is not None and entity.entity_id == TREE_ID:
-                    fraction.money_amount -= entity.salary  # todo add price instead of salary
+            if entity is None or entity.entity_id == TREE_ID and not ignore_owness:  # TODO UNCOMMENT
+                if entity is not None:
+                    fraction.money_amount -= entity.cost  # todo add price instead of salary
                     self.tiles[pos].sprite_entity.remove_from_sprite_lists()
             else:  # TODO UNCOMMENT
                 return False
@@ -280,10 +261,10 @@ class HexMap:
         for new_pos in self.get_move_range(old_pos):
             if self.is_in_move_range(old_pos, new_pos) and new_pos != old_pos:
                 if self.tiles[old_pos].can_move(self.tiles[new_pos]):
-                    self.state.changed_tiles.update({new_pos : self.tiles[new_pos].get_tile_texture()})
+                    self.state.changed_tiles.update({new_pos: self.tiles[new_pos].get_tile_texture()})
                     self.tiles[new_pos].set_tile_texture(color)
             elif new_pos == old_pos:
-                self.tiles[new_pos].set_tile_texture(color) # color2
+                self.tiles[new_pos].set_tile_texture(color)  # color2
 
     def add_tile_to_state(self, pos):
         self.state.changed_tiles.update({pos: self.tiles[pos].get_tile_texture()})
@@ -301,10 +282,9 @@ class HexMap:
 
     def move_unit(self, old_pos, new_pos):
         """
-
         :param old_pos:
         :param new_pos:
-        :return: is_moved, move_in_own_tiles : флаг сделанного хода, флаг того, что ходили не внури своей территории
+        :return: is_moved флаг сделанного хода
         """
         if old_pos == new_pos:
             return False
@@ -333,9 +313,9 @@ class HexMap:
                         self.state.fractions[fraction_id].update_step_delta(delta)
                         self.unset_defence(new_pos, damage_range, fraction_id)
 
-            moved = self.tiles[old_pos].move_to(new_pos, tile) # grid pos, tile
+            moved = self.tiles[old_pos].move_to(new_pos, tile)  # grid pos, tile
             if moved:
-                if fraction_id > 0 and not tile.is_empty: # не дерево и не плитка + если на клетке что-то есть, то убрать из фракции
+                if fraction_id > 0 and not tile.is_empty:  # не дерево и не плитка + если на клетке что-то есть, то убрать из фракции
                     tile.set_tile_fraction(self.state.get_last_fraction(), new_pos, self.state.fractions[fraction_id])
                 else:
                     tile.set_tile_fraction(self.state.get_last_fraction(), new_pos)
@@ -343,7 +323,7 @@ class HexMap:
                 return True
         return False
 
-    def set_defence(self, new_pos, old_pos = None):
+    def set_defence(self, new_pos, old_pos=None):
         unit = self.tiles[new_pos]
         fraction = self.state.get_last_fraction()
 
@@ -373,6 +353,3 @@ class HexMap:
 
     def use_entity(self, tile):
         self.tiles[tile].use_entity()
-
-
-

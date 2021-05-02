@@ -1,11 +1,9 @@
 import arcade
 import arcade.gui
-from arcade.gui import UIManager
-from control import Command
 
-from control import SpawnEntity, NextStep, UpdateGameState, MoveUnit
-from arcade.gui import UIFlatButton, UIManager
 from config import ENTITY_ID2COST
+from control import Command
+from control import SpawnEntity, NextStep, UpdateGameState
 
 
 class PlaceEntityButton(arcade.gui.UIFlatButton):
@@ -42,9 +40,9 @@ class NextStepButton(PlaceEntityButton):
         super(NextStepButton, self).__init__(*args, **kwargs)
 
         self.set_style_attrs(
-            bg_color = arcade.color.RED_DEVIL,
-            bg_color_hover = arcade.color.ROSE_RED,
-            bg_color_press = arcade.color.RED_BROWN,
+            bg_color=arcade.color.RED_DEVIL,
+            bg_color_hover=arcade.color.ROSE_RED,
+            bg_color_press=arcade.color.RED_BROWN,
             font_size=25,
         )
 
@@ -54,7 +52,7 @@ class NextStepButton(PlaceEntityButton):
 
 def set_ui(game_obj):
     btn_w, btn_h = 50, 50
-    
+
     next_btn = NextStepButton(text="Step", center_x=game_obj.w + 1.75 * game_obj.ui_margin_left,
                               center_y=game_obj.h - game_obj.ui_margin_top, width=btn_w * 2.1, height=btn_h)
     next_btn.set_command(NextStep(game_obj))
@@ -95,7 +93,8 @@ def set_ui(game_obj):
         id="money_step"
     )
     game_obj.ui_manager.add_ui_element(money_step)
-    
+
+
 def update_ui(game_obj):
     btn = game_obj.ui_manager.find_by_id("village")
     center_x, center_y, w, h, text = btn.center_x, btn.center_y, btn.width, btn.height, btn.text

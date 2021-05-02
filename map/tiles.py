@@ -1,9 +1,10 @@
-from arcade import Sprite, SpriteList
-from .hexagonal import Hex
+from arcade import Sprite
+
 from abstract import AbstractEntity
+from config import ASSETS, OWNED_TILE_ID
 from entity import OwnedTile
 from fractions import Fraction
-from config import ASSETS, COLORS, TREE_ID, OWNED_TILE_ID
+from .hexagonal import Hex
 
 
 class TileDecorator(Hex):
@@ -37,7 +38,7 @@ class TileDecorator(Hex):
         except KeyError:
             raise NotImplementedError
 
-    def set_tile_fraction(self, new_fraction : Fraction, pos, old_fraction : Fraction = None):
+    def set_tile_fraction(self, new_fraction: Fraction, pos, old_fraction: Fraction = None):
         if new_fraction == old_fraction:
             return
         if old_fraction is not None:
@@ -73,8 +74,8 @@ class TileDecorator(Hex):
         if self.is_empty() or self.entity.entity_id < 0:  # пустая клетка или дерево (лол)
             return False
 
-        if oth_tile.owned is not None:
-            if not self.is_one_fraction(oth_tile):
+        if oth_tile.is_owned_tile():
+            if not self.is_one_fraction(oth_tile) and oth_tile.is_empty():
                 return oth_tile.get_tile_health() <= self.entity.damage
 
         if oth_tile.is_empty() or oth_tile.entity.entity_id < 0:
@@ -84,6 +85,7 @@ class TileDecorator(Hex):
             return True
 
         if not oth_tile.is_empty():
+            print(oth_tile.get_tile_health(), self.entity.damage)
             if not self.is_one_fraction(oth_tile):
                 return oth_tile.entity.health <= self.entity.damage
 
@@ -123,7 +125,6 @@ class TileDecorator(Hex):
         self.entity = None
         self.sprite_entity.remove_from_sprite_lists()
         return delta
-
 
     def use_entity(self):
         if not self.is_empty():

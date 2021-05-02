@@ -13,6 +13,8 @@ from map.hexagonal_map import HexMap
 from arcade.gui import UIManager
 from ui import set_ui, update_ui
 
+has_exit = False
+
 
 class Game(arcade.Window):
     # Играют по очереди, сначала делает ход первый игрок, потом второй и т.д.
@@ -20,6 +22,8 @@ class Game(arcade.Window):
     hosts_num = 2
     active_host: int  # номер текущего активного хоста (тот, который играет)
     game_iteration: int  # номер хода
+
+    host_init_pos = {0: (1, 10), 1: (8, 1)}
 
     gamer_host: int
 
@@ -64,7 +68,7 @@ class Game(arcade.Window):
                 self.active_host = e
                 self.gamer_host = e
 
-            self.map.place_fraction(fraction)
+            self.map.place_fraction(fraction, self.host_init_pos[fraction.fraction_id])
 
         self.state.set_fraction(self.gamer_host)
 
@@ -77,7 +81,8 @@ class Game(arcade.Window):
 
         self.map.create_map()
         self.init_hosts()
-        self.map.after_init(self.hosts)  # размещение на карте деревьев и т.п.
+        self.after_init()  # размещение на карте деревьев и т.п.
+        # self.map.after_init(self.hosts)  # размещение на карте деревьев и т.п.
 
         self.ui_manager.purge_ui_elements()
         set_ui(self)
@@ -94,6 +99,17 @@ class Game(arcade.Window):
         # self.state.last_mouse_tile_pos = back
         # self.state.last_fraction = back2
         # sys.exit()
+
+    def after_init(self):
+        """
+        Запуск после размещения fractions
+        :return:
+        """
+        trees = self.map.get_random_positions()
+        from config import TREE_ID
+        fr = self.state.get_last_fraction()
+        for i in trees:
+            self.map.spawn_entity(TREE_ID, i, fr, True)
 
     def on_draw(self):
         """
