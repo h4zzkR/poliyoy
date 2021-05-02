@@ -69,6 +69,7 @@
 - arcade (графическая библиотека)
 - pillow
 - numpy
+- easyAI (maybe)
 - ...
 
 # References
