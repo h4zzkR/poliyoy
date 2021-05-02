@@ -53,10 +53,10 @@ class Fraction:
 
         return entity
 
-    def move_unit(self, old_pos, new_pos, flag):
+    def move_unit(self, old_pos, new_pos):
         unit = self.units_pos[old_pos]
         self.units_pos.update({new_pos : unit})
-        if flag: # переместились на собственную клетку
+        if old_pos in self.units_pos.keys(): # переместились на собственную клетку
             del self.units_pos[old_pos]
 
     def detach_tile(self, pos):
@@ -67,7 +67,7 @@ class Fraction:
     def make_step(self):
         # self.money_amount -= delta
         self.money_amount += self.step_delta
-        if self.money_amount < 0:
+        if self.money_amount < 0 or len(self.tiles.keys()) == 0:
             return True
         return False
 

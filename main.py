@@ -23,7 +23,7 @@ class Game(arcade.Window):
 
     gamer_host: int
 
-    map_state = None
+    state = None
     select_color = "BLUE"
     select2_color = "COLUMBIA_BLUE"
 
@@ -33,7 +33,7 @@ class Game(arcade.Window):
     game_over = False
 
     def __init__(self):
-        self.map_state = GameState()
+        self.state = GameState()
         self.map = HexMap(hex_radius=MAP_HEX_RADIUS)
         self.w, self.h = self.map.get_window_size()
         super().__init__(self.w + self.w // 4, self.h, "Poliyoy")
@@ -58,7 +58,7 @@ class Game(arcade.Window):
             self.hosts.append(Fraction(**FRACTIONS_CONFIG[frac]))
 
             fraction = self.hosts[-1]
-            self.map_state.append_fraction(fraction)
+            self.state.append_fraction(fraction)
 
             if not fraction.isBot:
                 self.active_host = e
@@ -66,7 +66,7 @@ class Game(arcade.Window):
 
             self.map.place_fraction(fraction)
 
-        self.map_state.set_fraction(self.gamer_host)
+        self.state.set_fraction(self.gamer_host)
 
     def setup(self):
         """
@@ -82,17 +82,17 @@ class Game(arcade.Window):
         self.ui_manager.purge_ui_elements()
         set_ui(self)
 
-        # back = self.map_state.last_mouse_tile_pos
-        # back2 = self.map_state.last_fraction
+        # back = self.state.last_mouse_tile_pos
+        # back2 = self.state.last_fraction
         # self.hosts[not self.active_host].money_amount = 9999
         #
         # pos = self.hosts[not self.active_host].fraction_capital_pos
-        # self.map_state.last_mouse_tile_pos = pos
-        # self.map_state.last_fraction = self.hosts[not self.active_host]
-        # obj = SpawnEntity(self.map, self.map_state, 1, UpdateGameState(self))
+        # self.state.last_mouse_tile_pos = pos
+        # self.state.last_fraction = self.hosts[not self.active_host]
+        # obj = SpawnEntity(self.map, self.state, 1, UpdateGameState(self))
         # obj.execute()
-        # self.map_state.last_mouse_tile_pos = back
-        # self.map_state.last_fraction = back2
+        # self.state.last_mouse_tile_pos = back
+        # self.state.last_fraction = back2
         # sys.exit()
 
     def on_draw(self):
@@ -110,20 +110,20 @@ class Game(arcade.Window):
         for host in self.hosts:
             for tile in host.tiles:
                 self.map.unuse_entity(tile)
-        game_over = self.hosts[0].make_step()
-        game_over = self.hosts[1].make_step()
+    
+        self.game_over = self.hosts[0].make_step()
+        self.game_over = self.hosts[1].make_step()
         self.update_screen_info()
-        if game_over:
-            self.game_over = True
 
         self.game_iteration += 1
 
         self.active_host = not self.active_host
-        self.map_state.set_fraction(self.active_host)  # upd last host
+        self.state.set_fraction(self.active_host)  # upd last host
+        self.update_screen_info()
 
     def update_screen_info(self):
-        self.ui_manager.find_by_id("money_amount").text = "Gold: " + str(self.hosts[self.gamer_host].money_amount)
-        self.ui_manager.find_by_id("money_step").text = "Delta: " + str(self.hosts[self.gamer_host].step_delta)
+        self.ui_manager.find_by_id("money_amount").text = "Gold: " + str(self.state.get_last_fraction().money_amount)
+        self.ui_manager.find_by_id("money_step").text = "Delta: " + str(self.state.get_last_fraction().step_delta)
 
     def update_village_btn(self):
         # Тяжелая операция, поэтому случай обрабатывается отдельно
@@ -135,7 +135,7 @@ class Game(arcade.Window):
         Обработка пользовательского действия
         """
         col, row = self.map.locate(x, y)
-        host = self.map_state.get_last_fraction()
+        host = self.state.get_last_fraction()
         pos = (col, row)
 
         self.map.unselect_tiles()
@@ -145,24 +145,32 @@ class Game(arcade.Window):
                 self.map.add_tile_to_state(pos)
                 self.map.select_tile(pos, self.select_color)
 
-                self.map_state.set_pos(col, row)
+                self.state.set_pos(col, row)
 
                 if pos in host.units_pos.keys():
                     self.map.show_move_range(pos, self.select_color, self.select2_color)
 
         elif button == 4:
-            unit_pos = self.map_state.last_mouse_tile_pos
+            unit_pos = self.state.last_mouse_tile_pos
             if unit_pos in host.units_pos.keys():
-                self.map_state.last_mouse_right_tile_pos = pos
-                command = MoveUnit(self.map, self.map_state, UpdateGameState(self))
+                self.state.last_mouse_right_tile_pos = pos
+                command = MoveUnit(self.map, self.state, UpdateGameState(self))
                 command.execute()
 
             if pos in host.tiles.keys():
                 pass
 
-        # print(self.active_host, self.map_state.get_last_fraction().fraction_id)
+        # print(self.active_host, self.state.get_last_fraction().fraction_id)
+
+    def possible_moves(self, pos):
+        return self.map.show_move_range_quiet(pos)
 
     def bot_move(self):
+        pass
+
+
+class AIApi:
+    def __init__(self):
         pass
 
 
@@ -178,7 +186,8 @@ class GameEnvironment(TwoPlayersGame):
         self.game_window = Game()
         self.nplayer = self.game_window.gamer_host + 1
 
-    def possible_moves(self): return ['1', '2', '3']
+    def possible_moves(self):
+        print(self.game_window.possible_moves())
 
     def make_move(self, move): self.pile -= int(move)  # remove bones.
 
@@ -190,35 +199,19 @@ class GameEnvironment(TwoPlayersGame):
 
     def show(self): print("%d bones left in the pile" % self.pile)
 
-    def scoring(self): return 100 if game.win() else 0  # For the AI
+    # def scoring(self): return 100 if game.win() else 0  # For the AI
 
 
-if __name__ == "__main__":
-    game = GameEnvironment([Human_Player(), AI_Player(Negamax(9))])
-    has_exit = False
-
-
-    @game.game_window.event
-    def on_close():
-        global has_exit
-        print("Game over")
-        has_exit = True
-
+def game_loop(game_obj):
+    global has_exit
 
     game_iters = 0
-
     start_time = time.time()
     while not game.is_over():
         if has_exit:
             break
-        # game.show()
-        # if game.nplayer == 1:  # we are assuming player 1 is a Human_Player
-        #     poss = game.possible_moves()
-        #     for index, move in enumerate(poss):
-        #         print("{} : {}".format(index, move))
-        #     index = int(input("enter move: "))
-        #     move = poss[index]
-        # else:  # we are assuming player 2 is an AI_Player
+
+        # if game.nplayer == 1:  # we are assuming player 1 is an AI_Player
         #     move = game.get_move()
         #     print("AI plays {}".format(move))
         #
@@ -238,3 +231,21 @@ if __name__ == "__main__":
             sleep_time = (1. / 60.) - elapsed_time
             time.sleep(sleep_time)
         game.game_window._dispatch_updates(1 / 60)
+
+        game.nplayer = game.game_window.active_host + 1
+
+
+if __name__ == "__main__":
+    game = GameEnvironment([AI_Player(Negamax(9)), Human_Player()])
+    has_exit = False
+
+    @game.game_window.event
+    def on_close():
+        global has_exit
+        print("Game over")
+        has_exit = True
+
+    game_loop(game)
+
+
+

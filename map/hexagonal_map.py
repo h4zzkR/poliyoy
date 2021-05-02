@@ -267,7 +267,14 @@ class HexMap:
                 tiles.update(set(self.count_neighbours(tile[0], tile[1])))
 
         return list(tiles)
-        # return list(out)
+
+    def show_move_range_quiet(self, old_pos):
+        out = []
+        for new_pos in self.get_move_range(old_pos):
+            if self.is_in_move_range(old_pos, new_pos) and new_pos != old_pos:
+                if self.tiles[old_pos].can_move(self.tiles[new_pos]):
+                    out.append(new_pos)
+        return out
 
     def show_move_range(self, old_pos, color, color2):
         for new_pos in self.get_move_range(old_pos):
@@ -300,11 +307,11 @@ class HexMap:
         :return: is_moved, move_in_own_tiles : флаг сделанного хода, флаг того, что ходили не внури своей территории
         """
         if old_pos == new_pos:
-            return False, False
+            return False
 
         if not self.tiles[old_pos].is_empty() and self.tiles[old_pos].is_used():
             # Уже походили
-            return False, False
+            return False
 
         if self.is_in_move_range(old_pos, new_pos):
             tile = self.tiles[new_pos]
@@ -316,7 +323,7 @@ class HexMap:
                     self.state.get_last_fraction().money_amount -= tile.entity.cost
                 if not is_tree and tile.entity.fraction_id == self.state.get_last_fraction().fraction_id:
                     # попытка перейти на свою занятую клетку
-                    return False, False
+                    return False
 
                 if self.tiles[old_pos].can_move(self.tiles[new_pos]):
                     # убить сущность на новой клетке
@@ -328,14 +335,13 @@ class HexMap:
 
             moved = self.tiles[old_pos].move_to(new_pos, tile) # grid pos, tile
             if moved:
-                move_in_own_tiles = fraction_id == self.state.get_last_fraction().fraction_id
                 if fraction_id > 0 and not tile.is_empty: # не дерево и не плитка + если на клетке что-то есть, то убрать из фракции
                     tile.set_tile_fraction(self.state.get_last_fraction(), new_pos, self.state.fractions[fraction_id])
                 else:
                     tile.set_tile_fraction(self.state.get_last_fraction(), new_pos)
 
-                return True, move_in_own_tiles
-        return False, False
+                return True
+        return False
 
     def set_defence(self, new_pos, old_pos = None):
         unit = self.tiles[new_pos]
@@ -361,7 +367,6 @@ class HexMap:
             for tile in neighbours:
                 if self.tiles[tile].is_own(fraction):
                     self.tiles[tile].set_tile_health(OWNED_TILE_HP_CLASS)
-
 
     def unuse_entity(self, tile):
         self.tiles[tile].unuse_entity()

@@ -38,10 +38,10 @@ class MoveUnit(Command):
         new_pos = self.map_state.last_mouse_right_tile_pos
         # print(self.fraction.fraction_id)
 
-        is_moved, is_moved_on_own_tile = self.map.move_unit(old_pos, new_pos)
+        is_moved = self.map.move_unit(old_pos, new_pos)
         # print(is_moved, is_moved_on_own_tile)
         if is_moved:
-            self.fraction.move_unit(old_pos, new_pos, is_moved_on_own_tile)
+            self.fraction.move_unit(old_pos, new_pos)
             self.map.set_defence(new_pos, old_pos)
             self.update.execute()
 
