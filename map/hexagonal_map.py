@@ -274,10 +274,7 @@ class HexMap:
             if self.is_in_move_range(old_pos, new_pos) and new_pos != old_pos:
                 if self.tiles[old_pos].can_move(self.tiles[new_pos]):
                     self.state.changed_tiles.update({new_pos : self.tiles[new_pos].get_tile_texture()})
-                    if self.tiles[new_pos].is_own(self.state.get_last_fraction()):
-                        self.tiles[new_pos].set_tile_texture(color) # color2
-                    else:
-                        self.tiles[new_pos].set_tile_texture(color)
+                    self.tiles[new_pos].set_tile_texture(color)
             elif new_pos == old_pos:
                 self.tiles[new_pos].set_tile_texture(color) # color2
 
@@ -314,21 +311,25 @@ class HexMap:
             fraction_id = tile.get_tile_fraction_id()
 
             if not tile.is_empty():
-
                 is_tree = tile.entity.entity_id == TREE_ID
                 if is_tree:
                     self.state.get_last_fraction().money_amount -= tile.entity.cost
                 if not is_tree and tile.entity.fraction_id == self.state.get_last_fraction().fraction_id:
                     # попытка перейти на свою занятую клетку
                     return False, False
-                delta = self.tiles[new_pos].kill_entity()
-                if fraction_id > 0:
-                    self.state.fractions[fraction_id].update_step_delta(delta)
+
+                if self.tiles[old_pos].can_move(self.tiles[new_pos]):
+                    # убить сущность на новой клетке
+                    damage_range = tile.entity.damage_range
+                    delta = self.tiles[new_pos].kill_entity()
+                    if fraction_id > 0:
+                        self.state.fractions[fraction_id].update_step_delta(delta)
+                        self.unset_defence(new_pos, damage_range, fraction_id)
 
             moved = self.tiles[old_pos].move_to(new_pos, tile) # grid pos, tile
             if moved:
                 move_in_own_tiles = fraction_id == self.state.get_last_fraction().fraction_id
-                if fraction_id > 0:
+                if fraction_id > 0 and not tile.is_empty: # не дерево и не плитка + если на клетке что-то есть, то убрать из фракции
                     tile.set_tile_fraction(self.state.get_last_fraction(), new_pos, self.state.fractions[fraction_id])
                 else:
                     tile.set_tile_fraction(self.state.get_last_fraction(), new_pos)
@@ -352,6 +353,15 @@ class HexMap:
             for tile in neighbours:
                 if self.tiles[tile].is_own(fraction):
                     self.tiles[tile].set_tile_health(self.tiles[new_pos].entity.health)
+
+    def unset_defence(self, pos, defence_range, fraction_id):
+        fraction = self.state.fractions[fraction_id]
+        neighbours = self.count_neighbours(pos[0], pos[1])
+        if defence_range == 1:
+            for tile in neighbours:
+                if self.tiles[tile].is_own(fraction):
+                    self.tiles[tile].set_tile_health(OWNED_TILE_HP_CLASS)
+
 
     def unuse_entity(self, tile):
         self.tiles[tile].unuse_entity()

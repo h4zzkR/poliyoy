@@ -17,6 +17,7 @@ class SpawnEntity(Command):
 
     def execute(self) -> None:
         self._receiver2 = self.map_state.get_last_fraction()
+        # print(self._receiver2.fraction_id)
         pos = self.map_state.last_mouse_tile_pos
         spawned = self._receiver1.spawn_entity(self.entity_id, self.map_state.last_mouse_tile_pos, self._receiver2)
         if spawned:
@@ -35,6 +36,7 @@ class MoveUnit(Command):
         self.fraction = self.map_state.get_last_fraction()
         old_pos = self.map_state.last_mouse_tile_pos
         new_pos = self.map_state.last_mouse_right_tile_pos
+        # print(self.fraction.fraction_id)
 
         is_moved, is_moved_on_own_tile = self.map.move_unit(old_pos, new_pos)
         # print(is_moved, is_moved_on_own_tile)

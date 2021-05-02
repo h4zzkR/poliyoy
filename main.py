@@ -66,7 +66,7 @@ class Game(arcade.Window):
 
             self.map.place_fraction(fraction)
 
-        self.map_state.set_fraction(self.active_host)
+        self.map_state.set_fraction(self.gamer_host)
 
     def setup(self):
         """
@@ -115,9 +115,11 @@ class Game(arcade.Window):
         self.update_screen_info()
         if game_over:
             self.game_over = True
-            # import sys
-            # sys.exit()
+
         self.game_iteration += 1
+
+        self.active_host = not self.active_host
+        self.map_state.set_fraction(self.active_host)  # upd last host
 
     def update_screen_info(self):
         self.ui_manager.find_by_id("money_amount").text = "Gold: " + str(self.hosts[self.gamer_host].money_amount)
@@ -133,7 +135,7 @@ class Game(arcade.Window):
         Обработка пользовательского действия
         """
         col, row = self.map.locate(x, y)
-        host = self.hosts[self.active_host]
+        host = self.map_state.get_last_fraction()
         pos = (col, row)
 
         self.map.unselect_tiles()
@@ -159,8 +161,6 @@ class Game(arcade.Window):
                 pass
 
         # print(self.active_host, self.map_state.get_last_fraction().fraction_id)
-        # self.active_host = not self.active_host
-        self.map_state.set_fraction(self.active_host)  # upd last host
 
     def bot_move(self):
         pass

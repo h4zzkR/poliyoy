@@ -75,7 +75,7 @@ class TileDecorator(Hex):
 
         if oth_tile.owned is not None:
             if not self.is_one_fraction(oth_tile):
-                return oth_tile.get_tile_health() < self.entity.damage
+                return oth_tile.get_tile_health() <= self.entity.damage
 
         if oth_tile.is_empty() or oth_tile.entity.entity_id < 0:
             return True
@@ -85,7 +85,7 @@ class TileDecorator(Hex):
 
         if not oth_tile.is_empty():
             if not self.is_one_fraction(oth_tile):
-                return oth_tile.entity.health < self.entity.damage
+                return oth_tile.entity.health <= self.entity.damage
 
         return False
 
