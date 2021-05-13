@@ -193,9 +193,7 @@ class HexMap:
         """
         # pos = self.tiles_list[randint(0, len(self.tiles) - 1)]
         entity = fraction.build_entity(2, pos, True)
-        self.tiles[pos].set_entity(
-            entity
-        )
+        self.tiles[pos].set_entity(entity)
         fraction.add_money(entity.cost)  # кешбек
 
         # Hexmap handle the rednering, so you need to provide access to sprites
@@ -327,7 +325,6 @@ class HexMap:
                     tile.set_tile_fraction(self.state.get_last_fraction(), new_pos, self.state.fractions[fraction_id])
                 else:
                     tile.set_tile_fraction(self.state.get_last_fraction(), new_pos)
-
                 return True
         return False
 

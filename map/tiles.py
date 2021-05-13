@@ -103,6 +103,12 @@ class TileDecorator(Hex):
     def is_used(self):
         return self.entity.used_in_step
 
+    def is_unit(self):
+        if self.is_used():
+            if self.entity.move_range != 0:
+                return True
+        return False
+
     def move_to(self, pos, oth_tile):
         if not self.can_move(oth_tile):
             return False

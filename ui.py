@@ -96,6 +96,7 @@ def set_ui(game_obj):
 
 def update_ui(game_obj):
     btn = game_obj.ui_manager.find_by_id("village")
+    # print(dir(btn))
     center_x, center_y, w, h, text = btn.center_x, btn.center_y, btn.width, btn.height, btn.text
 
     btn.remove_from_sprite_lists()

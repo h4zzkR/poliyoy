@@ -52,9 +52,8 @@ class Fraction:
                 return None
             self.money_amount -= entity.cost
 
-        if entity.move_range == 0 or entity_id < 0: # постройка
-            self.tiles.update({pos : entity})
-        else:
+        self.tiles.update({pos: entity})
+        if entity.move_range != 0:
             self.units_pos.update({pos : entity})
 
         self.step_delta -= entity.salary
@@ -64,6 +63,7 @@ class Fraction:
     def move_unit(self, old_pos, new_pos):
         unit = self.units_pos[old_pos]
         self.units_pos.update({new_pos : unit})
+
         if old_pos in self.units_pos.keys(): # переместились на собственную клетку
             del self.units_pos[old_pos]
 

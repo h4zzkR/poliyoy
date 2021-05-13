@@ -1,8 +1,5 @@
-from arcade.gui import UIFlatButton, UIManager
 import arcade
 import time
-
-from easyAI import TwoPlayersGame, Human_Player, AI_Player, Negamax
 
 from config import FRACTIONS_CONFIG, MAP_HEX_RADIUS, ENTITY_ID2COST
 from control import SpawnEntity, NextStep, UpdateGameState, MoveUnit
@@ -15,6 +12,12 @@ from ui import set_ui, update_ui
 
 has_exit = False
 
+class Bot:
+    def make_move(self, position):
+        pass
+
+    def get_state(self):
+        return [{'command' : "move"}]
 
 class Game(arcade.Window):
     # Играют по очереди, сначала делает ход первый игрок, потом второй и т.д.
@@ -23,7 +26,7 @@ class Game(arcade.Window):
     active_host: int  # номер текущего активного хоста (тот, который играет)
     game_iteration: int  # номер хода
 
-    host_init_pos = {0: (1, 10), 1: (8, 1)}
+    host_init_pos = {1: (1, 10), 0: (8, 1)}
 
     gamer_host: int
 
@@ -36,6 +39,8 @@ class Game(arcade.Window):
 
     game_over = False
 
+    bot = None
+
     def __init__(self):
         self.state = GameState()
         self.map = HexMap(hex_radius=MAP_HEX_RADIUS)
@@ -47,6 +52,8 @@ class Game(arcade.Window):
         self.ui_manager = UIManager()
         self.ui_margin_left = self.w / 15
         self.ui_margin_top = self.h / 10
+
+        self.bot = Bot()
 
         self.game_iteration = 0
 
@@ -87,19 +94,6 @@ class Game(arcade.Window):
         self.ui_manager.purge_ui_elements()
         set_ui(self)
 
-        # back = self.state.last_mouse_tile_pos
-        # back2 = self.state.last_fraction
-        # self.hosts[not self.active_host].money_amount = 9999
-        #
-        # pos = self.hosts[not self.active_host].fraction_capital_pos
-        # self.state.last_mouse_tile_pos = pos
-        # self.state.last_fraction = self.hosts[not self.active_host]
-        # obj = SpawnEntity(self.map, self.state, 1, UpdateGameState(self))
-        # obj.execute()
-        # self.state.last_mouse_tile_pos = back
-        # self.state.last_fraction = back2
-        # sys.exit()
-
     def after_init(self):
         """
         Запуск после размещения fractions
@@ -122,23 +116,27 @@ class Game(arcade.Window):
         self.ui_manager.on_draw()
 
     def on_next_step_key_press(self):
-        # print("before", self.hosts[1].money_amount)
+        from transmitters import PlayerStateTransmitterHandler
+
         for host in self.hosts:
             for tile in host.tiles:
                 self.map.unuse_entity(tile)
 
-        self.game_over = self.state.get_last_fraction().make_step()
-        self.update_screen_info()
+        self.game_over = self.state.get_last_fraction().make_step() # user
 
-        self.game_iteration += 1
-
+        # Turn to bot
         self.active_host = not self.active_host
         self.state.set_fraction(self.active_host)  # upd last host
-        self.update_screen_info()
+        self.bot.make_move(PlayerStateTransmitterHandler().forward(self.state.get_last_fraction(), self.state.fractions[not self.active_host]))
+        self.bot_command_parser(self.bot.get_state())
+        self.game_over = self.state.get_last_fraction().make_step() # bot
 
-        fraction = self.state.get_last_fraction()
-        # if fraction.village_cost_prev != fraction.village_cost:
+        # Turn to player
+        self.active_host = not self.active_host
+        self.state.set_fraction(self.active_host)
+        self.update_screen_info()
         self.update_village_btn()
+        self.game_iteration += 1
 
     def update_screen_info(self):
         self.ui_manager.find_by_id("money_amount").text = "Gold: " + str(self.state.get_last_fraction().money_amount)
@@ -148,6 +146,17 @@ class Game(arcade.Window):
         # Тяжелая операция, поэтому случай обрабатывается отдельно
         # # Дальше костыль для обновления текста кнопки (в либе такое, почему-то, не предусмотрено)
         update_ui(self)
+
+    def move_unit(self, host):
+        pos = self.state.last_mouse_right_tile_pos
+        unit_pos = self.state.last_mouse_tile_pos
+        if unit_pos in host.units_pos.keys():
+            self.state.last_mouse_right_tile_pos = pos
+            command = MoveUnit(self.map, self.state, UpdateGameState(self))
+            command.execute()
+
+        if pos in host.tiles.keys():
+            pass
 
     def on_mouse_press(self, x, y, button, modifiers):
         """
@@ -170,55 +179,49 @@ class Game(arcade.Window):
                     self.map.show_move_range(pos, self.select_color, self.select2_color)
 
         elif button == 4:
-            unit_pos = self.state.last_mouse_tile_pos
-            if unit_pos in host.units_pos.keys():
-                self.state.last_mouse_right_tile_pos = pos
-                command = MoveUnit(self.map, self.state, UpdateGameState(self))
-                command.execute()
-
-            if pos in host.tiles.keys():
-                pass
-
-        # print(self.active_host, self.state.get_last_fraction().fraction_id)
+            self.state.last_mouse_right_tile_pos = pos
+            self.move_unit(host)
 
     def possible_moves(self, pos):
         return self.map.show_move_range_quiet(pos)
 
-    def bot_move(self):
-        pass
+    def bot_command_parser(self, move_list):
+        for move in move_list:
+            command = move['command']
+            if command == 'create_village':
+                col, row = move[1][0], move[1][1]
+                self.state.set_pos(col, row)
+                self.ui_manager.find_by_id("village").on_click()
+            elif command == 'create_archer':
+                col, row = move[1][0], move[1][1]
+                self.state.set_pos(col, row)
+                self.ui_manager.find_by_id("scout").on_click()
+            elif command == 'create_strong_unit':
+                col, row = move[1][0], move[1][1]
+                self.state.set_pos(col, row)
+                self.ui_manager.find_by_id("warrior").on_click()
+            elif command == 'create_defence_tower':
+                col, row = move[1][0], move[1][1]
+                self.state.set_pos(col, row)
+                self.ui_manager.find_by_id("tower").on_click()
+            elif command == 'move_archer' or command == 'move_strong_unit':
+                old_col, old_row = move[1][0], move[1][1]
+                col, row = move[1][0], move[1][1]
+                self.state.set_pos(old_col, old_row)
+                self.state.last_mouse_right_tile_pos = (col, row)
+                self.move_unit(self.state.get_bot_fraction())
 
 
-class AIApi:
+class GameEnvironment():
     def __init__(self):
-        pass
-
-
-class GameEnvironment(TwoPlayersGame):
-    def __init__(self, players):
-        self.players = players
-        self.pile = 20  # start with 20 bones in the pile
-        self.nplayer = 1  # player 1 starts
         self.game_window = None
         self.set_game_window()
 
     def set_game_window(self):
         self.game_window = Game()
-        self.nplayer = self.game_window.gamer_host + 1
 
-    def possible_moves(self):
-        print(self.game_window.possible_moves())
-
-    def make_move(self, move): self.pile -= int(move)  # remove bones.
-
-    def win(self): return self.pile <= 0  # opponent took the last bone ?
-
-    # def is_over(self): return self.win() # Game stops when someone wins.
     def is_over(self):
         return self.game_window.game_over
-
-    def show(self): print("%d bones left in the pile" % self.pile)
-
-    # def scoring(self): return 100 if game.win() else 0  # For the AI
 
 
 def game_loop(game_obj):
@@ -229,12 +232,6 @@ def game_loop(game_obj):
     while not game.is_over():
         if has_exit:
             break
-
-        # if game.nplayer == 1:  # we are assuming player 1 is an AI_Player
-        #     move = game.get_move()
-        #     print("AI plays {}".format(move))
-        #
-        # game.play_move(move)
 
         game.game_window.switch_to()
         game.game_window.dispatch_events()
@@ -255,7 +252,7 @@ def game_loop(game_obj):
 
 
 if __name__ == "__main__":
-    game = GameEnvironment([AI_Player(Negamax(9)), Human_Player()])
+    game = GameEnvironment()
     has_exit = False
 
     @game.game_window.event

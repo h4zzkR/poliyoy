@@ -9,8 +9,9 @@ class GameState(object):
     last_mouse_right_tile_pos = (-1, -1)
     last_mouse_tile_texture = ASSETS.hex_textures["GREEN"]
     last_fraction_id = None
+    bot_id = 0
 
-    changed_tiles = dict()
+    changed_tiles = dict() # для изменения цвета выбранных клеток
     fractions = dict()
 
     def __new__(cls):
@@ -37,9 +38,14 @@ class GameState(object):
         self.fractions = dict()
         for fraction in fractions:
             self.fractions.update({fraction.fraction_id: fraction})
+            if fraction.isBot:
+                self.bot_id = fraction.fraction_id
 
     def append_to_tiles(self, pos, texture):
         self.changed_tiles.update({pos : texture})
 
     def get_last_fraction(self):
         return self.fractions[self.last_fraction]
+
+    def get_bot_fraction(self):
+        return self.fractions[self.bot_id]
