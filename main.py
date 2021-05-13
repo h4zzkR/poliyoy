@@ -127,6 +127,9 @@ class Game(arcade.Window):
         # Turn to bot
         self.active_host = not self.active_host
         self.state.set_fraction(self.active_host)  # upd last host
+
+        # test = PlayerStateTransmitterHandler().forward(self.state.get_last_fraction(), self.state.fractions[not self.active_host])[1]
+        # print(test.money, test.cells, test.money, test.archers, test.strong_units, test.spawned_villages, test.defence_towers)
         self.bot.make_move(PlayerStateTransmitterHandler().forward(self.state.get_last_fraction(), self.state.fractions[not self.active_host]))
         self.bot_command_parser(self.bot.get_state())
         self.game_over = self.state.get_last_fraction().make_step() # bot
