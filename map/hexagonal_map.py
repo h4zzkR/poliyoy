@@ -212,9 +212,10 @@ class HexMap:
 
 
     def spawn_tree(self, pos, fraction):
-        obj = fraction.build_tree(pos)
-        self.tiles[pos].set_entity(obj)
-        self.sprite_tiles.append(self.tiles[pos].sprite_entity)
+        if self.tiles[pos].is_empty():
+            obj = fraction.build_tree(pos)
+            self.tiles[pos].set_entity(obj)
+            self.sprite_tiles.append(self.tiles[pos].sprite_entity)
 
     def spawn_entity(self, entity_id, pos: tuple, fraction):
         """

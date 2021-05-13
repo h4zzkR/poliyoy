@@ -52,36 +52,35 @@ class NextStepButton(PlaceEntityButton):
 
 def set_ui(game_obj):
     btn_w, btn_h = 50, 50
-
     next_btn = NextStepButton(text="Step", center_x=game_obj.w + 1.75 * game_obj.ui_margin_left,
                               center_y=game_obj.h - game_obj.ui_margin_top, width=btn_w * 2.1, height=btn_h)
     next_btn.set_command(NextStep(game_obj))
     game_obj.ui_manager.add_ui_element(next_btn)
 
-    btn1 = PlaceEntityButton(text=f"V: {ENTITY_ID2COST[2]}", center_x=game_obj.w + game_obj.ui_margin_left,  # village
+    placeVillage = PlaceEntityButton(text=f"V: {ENTITY_ID2COST[2]}", center_x=game_obj.w + game_obj.ui_margin_left,
                              center_y=next_btn.center_y - 1.2 * btn_h, width=btn_w, height=btn_h, id="village")
-    btn1.set_command(SpawnEntity(game_obj.map, game_obj.state, 2, UpdateGameState(game_obj)))
-    game_obj.ui_manager.add_ui_element(btn1)
+    placeVillage.set_command(SpawnEntity(game_obj.map, game_obj.state, 2, UpdateGameState(game_obj)))
+    game_obj.ui_manager.add_ui_element(placeVillage)
 
-    btn2 = PlaceEntityButton(text=f"W: {ENTITY_ID2COST[1]}", center_x=btn1.center_x + btn_w * 1.2,
-                             center_y=btn1.center_y, width=btn_w, height=btn_h, id="warrior")
-    btn2.set_command(SpawnEntity(game_obj.map, game_obj.state, 1, UpdateGameState(game_obj)))
-    game_obj.ui_manager.add_ui_element(btn2)
+    placeWarrior = PlaceEntityButton(text=f"W: {ENTITY_ID2COST[1]}", center_x=placeVillage.center_x + btn_w * 1.2,
+                             center_y=placeVillage.center_y, width=btn_w, height=btn_h, id="warrior")
+    placeWarrior.set_command(SpawnEntity(game_obj.map, game_obj.state, 1, UpdateGameState(game_obj)))
+    game_obj.ui_manager.add_ui_element(placeWarrior)
 
-    btn3 = PlaceEntityButton(text=f"S: {ENTITY_ID2COST[0]}", center_x=btn1.center_x,
-                             center_y=btn1.center_y - 1.2 * btn_h, width=btn_w, height=btn_h, id="scout")
-    btn3.set_command(SpawnEntity(game_obj.map, game_obj.state, 0, UpdateGameState(game_obj)))
-    game_obj.ui_manager.add_ui_element(btn3)
+    placeScout = PlaceEntityButton(text=f"S: {ENTITY_ID2COST[0]}", center_x=placeVillage.center_x,
+                             center_y=placeVillage.center_y - 1.2 * btn_h, width=btn_w, height=btn_h, id="scout")
+    placeScout.set_command(SpawnEntity(game_obj.map, game_obj.state, 0, UpdateGameState(game_obj)))
+    game_obj.ui_manager.add_ui_element(placeScout)
 
-    btn4 = PlaceEntityButton(text=f"T: {ENTITY_ID2COST[3]}", center_x=btn2.center_x,
-                             center_y=btn3.center_y, width=btn_w, height=btn_h, id="tower")
-    btn4.set_command(SpawnEntity(game_obj.map, game_obj.state, 3, UpdateGameState(game_obj)))
-    game_obj.ui_manager.add_ui_element(btn4)
+    placeTower = PlaceEntityButton(text=f"T: {ENTITY_ID2COST[3]}", center_x=placeWarrior.center_x,
+                             center_y=placeScout.center_y, width=btn_w, height=btn_h, id="tower")
+    placeTower.set_command(SpawnEntity(game_obj.map, game_obj.state, 3, UpdateGameState(game_obj)))
+    game_obj.ui_manager.add_ui_element(placeTower)
 
     money_label = arcade.gui.UILabel(
         f'Gold: {game_obj.hosts[game_obj.gamer_host].money_amount}',
-        center_x=btn3.center_x + btn_w * 0.55,
-        center_y=btn3.center_y - btn_h,
+        center_x=placeScout.center_x + btn_w * 0.55,
+        center_y=placeScout.center_y - btn_h,
         id="money_amount"
     )
     game_obj.ui_manager.add_ui_element(money_label)
