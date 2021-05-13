@@ -210,25 +210,32 @@ class HexMap:
                 if self.tiles[tile].entity is None:
                     self.tiles[tile].set_tile_fraction(fraction, tile)
 
-    def spawn_entity(self, entity_id, pos: tuple, fraction, ignore_owness=False):
+
+    def spawn_tree(self, pos, fraction):
+        obj = fraction.build_tree(pos)
+        self.tiles[pos].set_entity(obj)
+        self.sprite_tiles.append(self.tiles[pos].sprite_entity)
+
+    def spawn_entity(self, entity_id, pos: tuple, fraction):
         """
         Add new sprite to spritelist
         :param pos:
         :param id:
         :return:
         """
-        if pos in fraction.tiles.keys() or ignore_owness == True:  # спавн только на собственных территориях
+        if pos in fraction.tiles.keys(): # or ignore_owness == True:  # спавн только на собственных территориях
             entity = self.tiles[pos].entity
             if self.tiles[pos].is_owned_tile():
                 if self.tiles[pos].owned.fraction_id != fraction.fraction_id:
                     return False
 
-            if entity is None or entity.entity_id == TREE_ID and not ignore_owness:  # TODO UNCOMMENT
-                if entity is not None:
+            if entity is not None:
+                if entity.entity_id == TREE_ID:
                     fraction.money_amount -= entity.cost  # todo add price instead of salary
                     self.tiles[pos].sprite_entity.remove_from_sprite_lists()
-            else:  # TODO UNCOMMENT
-                return False
+                else:
+                    return False
+
             obj = fraction.build_entity(entity_id, pos)
             if obj:
                 self.tiles[pos].set_entity(obj)

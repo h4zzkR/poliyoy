@@ -109,7 +109,7 @@ class Game(arcade.Window):
         from config import TREE_ID
         fr = self.state.get_last_fraction()
         for i in trees:
-            self.map.spawn_entity(TREE_ID, i, fr, True)
+            self.map.spawn_tree(i, fr)
 
     def on_draw(self):
         """
@@ -126,9 +126,8 @@ class Game(arcade.Window):
         for host in self.hosts:
             for tile in host.tiles:
                 self.map.unuse_entity(tile)
-    
-        self.game_over = self.hosts[0].make_step()
-        self.game_over = self.hosts[1].make_step()
+
+        self.game_over = self.state.get_last_fraction().make_step()
         self.update_screen_info()
 
         self.game_iteration += 1

@@ -1,5 +1,5 @@
 from builders import EntityBuilder, EntityDirector
-from config import OWNED_TILE_ID, OWNED_TILE_SALARY, ENTITIES_CONFIG, ENTITY_ID2COST
+from config import OWNED_TILE_ID, OWNED_TILE_SALARY, ENTITIES_CONFIG, ENTITY_ID2COST, TREE_ID
 
 
 class Fraction:
@@ -29,7 +29,13 @@ class Fraction:
         self.entity_director = EntityDirector()
         self.entity_director.builder = EntityBuilder()
 
+    def build_tree(self, pos: tuple = None):
+        self.entity_director.set_fraction(-1)
+        entity = self.entity_director.build_entity(TREE_ID, pos).get()
+        return entity
+
     def build_entity(self, entity_id: int, pos: tuple = None, no_update = False):
+        # no_update - no update village cost
         self.entity_director.set_fraction(self.fraction_id)
         entity = self.entity_director.build_entity(entity_id, pos).get()
 
@@ -67,7 +73,6 @@ class Fraction:
         self.step_delta += OWNED_TILE_SALARY
 
     def make_step(self):
-        # self.money_amount -= delta
         self.money_amount += self.step_delta
         if self.money_amount < 0 or len(self.tiles.keys()) == 0:
             return True
