@@ -1,42 +1,71 @@
 {
-  "archer" : {
-    "type_id": 0,
-    "damage": 20,
-    "health": 80,
-    "salary": -10,
-    "damage_range": 3,
-    "move_range": 3
+  "scout": {
+    "entity_id": 0,
+    "damage": 1,
+    "health": 1,
+    "salary": 3,
+    "cost": 12,
+    "damage_range": 0,
+    "texture": "assets/scout.png",
+    "texture_scale": 0.23,
+    "cost_scale": 1,
+    "move_range": 1
   },
-  "swordsman" : {
-    "type_id": 1,
-    "damage": 25,
-    "health": 110,
-    "salary": -5,
+  "warrior": {
+    "entity_id": 1,
+    "damage": 2,
+    "health": 2,
+    "salary": 7,
+    "cost": 30,
     "damage_range": 1,
-    "move_range": 2
+    "texture": "assets/warrior.png",
+    "texture_scale": 0.09,
+    "cost_scale": 1,
+    "move_range": 1
+  },
+  "tree" : {
+    "entity_id": -1,
+    "damage": 0,
+    "health": 0,
+    "salary": 0,
+    "cost": -3,
+    "damage_range": 0,
+    "texture": "assets/tree.png",
+    "texture_scale": 0.08,
+    "cost_scale": 1,
+    "move_range": 0
+  },
+  "ownedtile" : {
+    "entity_id": -2,
+    "salary" : -1,
+    "cost" : 0,
+    "health" : 0,
+    "damage_range": 0,
+    "cost_scale": 1,
+    "move_range": 0
   },
   "village" : {
-    "type_id": 2,
+    "entity_id": 2,
     "damage": 0,
-    "health": 100,
-    "salary": 10,
+    "health": 0,
+    "salary": -5,
+    "cost": 12,
     "damage_range": 0,
+    "texture": "assets/farm.png",
+    "texture_scale": 0.5,
+    "cost_scale": 2,
     "move_range": 0
   },
-  "defence_tower" : {
-    "type_id": 3,
+  "tower": {
+    "entity_id": 3,
     "damage": 25,
-    "health": 150,
-    "salary": -10,
-    "damage_range": 2,
+    "health": 2,
+    "salary": 2,
+    "cost": 15,
+    "damage_range": 1,
+    "texture": "assets/tower.png",
+    "texture_scale": 0.075,
+    "cost_scale": 1,
     "move_range": 0
-  },
-  "fraction0_modifiers" : {
-    "health" : 0.1,
-    "damage" : 1.1
-  },
-  "fraction1_modifiers" : {
-    "health" : 1.1,
-    "damage" : 0.1
   }
 }
