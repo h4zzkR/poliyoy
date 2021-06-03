@@ -1,6 +1,5 @@
 # Poliyoy - стратегическая игра-проект
 
-![image](https://user-images.githubusercontent.com/35405876/115785805-a3185680-a3c8-11eb-89fb-a6c1615a31a8.png)
 ![image](https://user-images.githubusercontent.com/35405876/116817313-638efe80-ab6e-11eb-947c-0109cff77668.png)
 
 # Игровая модель и описание
@@ -55,6 +54,7 @@
 
 TODO: условия в move_to можно заменить на CoR
 
+![image](https://user-images.githubusercontent.com/35405876/115785805-a3185680-a3c8-11eb-89fb-a6c1615a31a8.png)
 
 
 # Инструкции
